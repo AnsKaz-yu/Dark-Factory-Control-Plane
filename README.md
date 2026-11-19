@@ -2,6 +2,8 @@
 
 **Engineering Work Management & Observability Platform for autonomous development.**
 
+[Русская версия](README.ru.md)
+
 DFCP observes and manages the software development process of any project — tasks, agents,
 workflow, Git, CI/CD, merge queues, releases and critical path — and **adapts itself to the
 project's actual engineering harness** instead of forcing projects into a predefined workflow.
