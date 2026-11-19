@@ -113,7 +113,7 @@ route("GET", "/api/projects/:id/events", ctx => {
   const limit = Math.min(Number(ctx.query.get("limit") ?? 200), 2000)
   const type = ctx.query.get("type")
   let evs = s.events.after(after)
-  if (type) evs = evs.filter(e => e.type === type)
+  if (type) evs = evs.filter(e => e.type.startsWith(type))
   ok(ctx, { events: evs.slice(0, limit), lastSeq: s.events.lastSeq() })
 })
 
