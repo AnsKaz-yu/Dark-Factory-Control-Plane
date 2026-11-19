@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import type { Adapter, AdapterContext, ProbeResult } from "../../adapters/src/contract.ts"
 import { makeContext } from "../../adapters/src/index.ts"
+import { DEFAULT_STATUS_MAP } from "../../adapters/src/file-task-tracker.ts"
 import { validateEvent } from "../../core/src/schema.ts"
 import { nowISO, sha256 } from "../../core/src/ids.ts"
 import { integrationDir, trackFile } from "./install.ts"
@@ -77,7 +78,9 @@ export default {
 }
 
 function taskLinesAdapterSource(spec: GeneratedAdapterSpec): string {
-  const statusMap = JSON.stringify(spec.statusMap ?? {})
+  // start from the standard mapping dictionary; the Setup Agent refines it per harness.
+  // Unmapped statuses normalize to "unknown" with the original preserved (never invented).
+  const statusMap = JSON.stringify({ ...DEFAULT_STATUS_MAP, ...spec.statusMap })
   return `${HEADER}
 const PATH = ${JSON.stringify(spec.path)}
 const STATUS_MAP = ${statusMap}

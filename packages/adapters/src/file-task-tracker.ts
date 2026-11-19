@@ -32,7 +32,7 @@ const FIELD_CANDIDATES: Record<string, string[]> = {
   description: ["description", "doc", "details", "body"],
 }
 
-const DEFAULT_STATUS_MAP: Record<string, TaskStatus> = {
+export const DEFAULT_STATUS_MAP: Record<string, TaskStatus> = {
   "todo": "backlog", "backlog": "backlog", "new": "backlog", "open": "backlog",
   "planning": "planning", "planned": "planning", "awaiting-approval": "planning",
   "ready": "ready", "queued": "ready", "pending": "ready", "todo-ready": "ready",
@@ -50,9 +50,9 @@ const DEFAULT_STATUS_MAP: Record<string, TaskStatus> = {
   "cancelled": "cancelled", "canceled": "cancelled", "wontfix": "cancelled",
 }
 
-function detectFields(sample: Record<string, unknown>): Record<string, string> {
+function detectFields(samples: Record<string, unknown>[]): Record<string, string> {
   const out: Record<string, string> = {}
-  const keys = Object.keys(sample)
+  const keys = [...new Set(samples.flatMap(s => Object.keys(s)))]
   for (const [canonical, candidates] of Object.entries(FIELD_CANDIDATES)) {
     const hit = candidates.find(c => keys.some(k => k.toLowerCase() === c.toLowerCase()))
     if (hit) out[canonical] = keys.find(k => k.toLowerCase() === hit.toLowerCase())!
@@ -94,7 +94,7 @@ export function parseTasks(ctx: AdapterContext, cfg: TrackerConfig): { tasks: Re
       return { tasks }
     }
     const doc = JSON.parse(text)
-    let arr = getPath(doc, cfg.tasksPath)
+    let arr: unknown = cfg.tasksPath ? getPath(doc, cfg.tasksPath) : undefined
     if (arr === undefined && !cfg.tasksPath) {
       // auto: find first array of objects, or object-of-objects with id-like keys
       if (Array.isArray(doc)) arr = doc
@@ -130,7 +130,7 @@ export const fileTaskTrackerAdapter: Adapter = {
     const { tasks, error } = parseTasks(ctx, cfg)
     if (error) return { ok: false, confidence: "inferred", detail: error, capabilities: { task_management: { status: "degraded", limitations: [error] } } }
     if (!tasks.length) return { ok: true, confidence: "verified", detail: "readable but empty", capabilities: { task_management: { status: "supported", limitations: ["tracker is empty"], completeness: 0 } } }
-    const fields = { ...detectFields(tasks[0]), ...cfg.fields }
+    const fields = { ...detectFields(tasks.slice(0, 10)), ...cfg.fields }
     if (!fields.id || !fields.title) {
       return { ok: false, confidence: "inferred", detail: "cannot map id/title fields", capabilities: { task_management: { status: "partial", limitations: ["id or title field not detected — configure fields mapping"] } } }
     }
@@ -166,8 +166,9 @@ export const fileTaskTrackerAdapter: Adapter = {
   async collect(ctx) {
     const cfg = ctx.config as unknown as TrackerConfig
     const { tasks, error } = parseTasks(ctx, cfg)
-    if (error || !tasks.length) return { events: [], notes: error ? [error] : [] }
-    const fields = { ...detectFields(tasks[0]), ...cfg.fields }
+    if (error) throw new Error(`task tracker unreadable: ${error}`)
+    if (!tasks.length) return { events: [] }
+    const fields = { ...detectFields(tasks.slice(0, 10)), ...cfg.fields }
     const statusMap = { ...DEFAULT_STATUS_MAP, ...cfg.statusMap }
     const events: OutboundEvent[] = []
     const statusesSeen = new Set<string>()

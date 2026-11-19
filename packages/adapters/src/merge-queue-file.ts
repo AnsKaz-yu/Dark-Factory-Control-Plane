@@ -64,7 +64,7 @@ export const mergeQueueFileAdapter: Adapter = {
   async collect(ctx) {
     const cfg = ctx.config as unknown as QueueConfig
     const { items, error } = readQueue(ctx, cfg)
-    if (error) return { events: [], notes: [error] }
+    if (error) throw new Error(`merge queue unreadable: ${error}`)
     const f = cfg.fields ?? {}
     const stateMap = { ...DEFAULT_STATE_MAP, ...cfg.stateMap }
     const entries = items.map((it, i) => {

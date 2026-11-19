@@ -304,6 +304,12 @@ export function discover(projectId: string, root: string): DiscoveryReport {
   // ---- 9. Architecture sources ----
   const c4Files = find(/\.(c4|likec4)$/i)
   const modelFiles = find(/(^|\/)(architecture\/dist\/|dist\/)?model\.json$/i)
+  // known export locations may live under skipped dirs (dist/) — check explicitly
+  for (const cand of ["architecture/dist/model.json", "dist/model.json", "model.json", "architecture/model.json", "docs/architecture/model.json"]) {
+    if (existsSync(join(root, cand)) && !modelFiles.some(f => f.rel === cand)) {
+      modelFiles.push({ rel: cand, abs: join(root, cand), size: 0 })
+    }
+  }
   if (c4Files.length || modelFiles.length) {
     detectedTools.add("likec4")
     const mf = modelFiles[0]

@@ -1,7 +1,7 @@
 // Integration directory layout + project config + install manifest (reversible installs).
 // ALL product writes into a target project are confined to .dark-factory/ and tracked.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { join, dirname, relative, isAbsolute } from "node:path"
 import { nowISO } from "../../core/src/ids.ts"
 
 export const INTEGRATION_DIR = ".dark-factory"
@@ -56,7 +56,8 @@ export function trackFile(root: string, relPath: string): void {
   if (!existsSync(manifestPath)) return
   try {
     const m: InstallManifest = JSON.parse(readFileSync(manifestPath, "utf8"))
-    if (!m.files.includes(relPath)) { m.files.push(relPath); writeJson(manifestPath, m) }
+    const rel = isAbsolute(relPath) ? relative(root, relPath).replace(/\\/g, "/") : relPath
+    if (!m.files.includes(rel)) { m.files.push(rel); writeJson(manifestPath, m) }
   } catch { /* best effort */ }
 }
 
@@ -82,7 +83,7 @@ export function uninstall(root: string): { removed: string[]; errors: string[] }
     try {
       const m: InstallManifest = JSON.parse(readFileSync(manifestPath, "utf8"))
       for (const f of m.files) {
-        const abs = join(root, f)
+        const abs = isAbsolute(f) ? f : join(root, f)
         if (!abs.startsWith(idir)) { errors.push(`refused to remove outside integration dir: ${f}`); continue }
         try { if (existsSync(abs)) { rmSync(abs); removed.push(f) } } catch (e) { errors.push(String((e as Error).message)) }
       }

@@ -29,6 +29,9 @@ function runtime(name: string): string {
 function setup(kind: FixtureKind, name: string, id: string): { manager: ProjectManager; host: DfcpIntegrationHost; root: string; store: ReturnType<ProjectManager["get"]> } {
   const base = runtime(name)
   const root = join(base, id)
+  // disposable fixtures: always start from a clean slate
+  rmSync(root, { recursive: true, force: true })
+  rmSync(join(base, "dfcp-data"), { recursive: true, force: true })
   buildFixture(kind, root)
   const manager = new ProjectManager(join(base, "dfcp-data"))
   const host = new DfcpIntegrationHost()
@@ -247,9 +250,9 @@ test("drift B: new workflow status -> mapping revisited, original preserved, his
   assert.equal(t7.status, "unknown") // unmapped -> honest unknown, NOT invented
   assert.equal(t7.mapping.confidence, "unmapped")
   assert.ok(store.getCapabilities().capabilities.task_management.limitations.some(l => l.includes("scanning")))
-  // history preserved: events only grew
+  // history preserved: events only grew; the modified task kept its history
   assert.ok(store.events.count() > eventsBefore)
-  assert.ok(store.state.tasks["T-2"].history.length > 0)
+  assert.ok(store.state.tasks["T-1"].history.length > 0)
 })
 
 test("drift C: CI config removed -> requires approval; approved -> applied", async () => {
@@ -313,7 +316,7 @@ test("generated adapter update: contract-tested activation; broken update refuse
   const spec = { name, kind: "task-lines" as const, path: "tasks.pipe" }
   const original = readFileSync(join(genDir, taskAdapterFile), "utf8")
   // v2: extend status map with a new custom stage (written via the versioned writer -> history archived)
-  const v2 = original.replace("const STATUS_MAP = {}", 'const STATUS_MAP = {"polishing": "review"}')
+  const v2 = original.replace("const STATUS_MAP = {", 'const STATUS_MAP = {"polishing": "review",')
   assert.notEqual(v2, original)
   writeGeneratedAdapter(root, spec, v2)
   const upd = await host.adapterUpdate(store, adapterId) as { ok: boolean; version?: string; detail?: string }
@@ -375,6 +378,8 @@ test("C: bare project — honest unavailable capabilities, minimal dashboard", a
 
 test("multi-project isolation: three projects, separate state/config/capabilities", async () => {
   const base = runtime("multi")
+  rmSync(base, { recursive: true, force: true })
+  mkdirSync(base, { recursive: true })
   const manager = new ProjectManager(join(base, "dfcp-data"))
   const host = new DfcpIntegrationHost()
   for (const [kind, id] of [["alpha", "alpha"], ["beta", "beta"], ["gamma", "gamma"]] as [FixtureKind, string][]) {
