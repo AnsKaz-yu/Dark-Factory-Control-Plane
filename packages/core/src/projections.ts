@@ -159,7 +159,13 @@ export function apply(state: ProjectState, e: EventEnvelope): ProjectState {
     }
     case "task.created": {
       const id = p.id as string
-      if (state.tasks[id]) { applyTaskFields(state.tasks[id], p, e); break }
+      if (state.tasks[id]) {
+        const oldStatus = state.tasks[id].status
+        applyTaskFields(state.tasks[id], p, e)
+        if (state.tasks[id].status !== oldStatus) recordTransition(state, oldStatus, state.tasks[id].status, e.occurredAt)
+        recomputeBlocked(state)
+        break
+      }
       const t: Task = {
         id, projectId: e.projectId, title: p.title as string, description: p.description as string | undefined,
         kind: (p.kind as Task["kind"]) ?? "task", parentId: p.parentId as string | undefined,

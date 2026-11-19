@@ -452,6 +452,7 @@ export interface HarnessFingerprint {
   mappingVersions: Record<string, number>
   workflowStages: string[]
   limitations: string[]
+  diagnosticsBaseline?: number
 }
 
 export const DRIFT_CATEGORIES = ["A", "B", "C"] as const

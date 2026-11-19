@@ -17,6 +17,9 @@ export interface IntegrationHost {
   adapterUpdate(store: ProjectStore, adapterId: string): Promise<unknown>
   adapterStatus(store: ProjectStore): unknown
   integrationDiff(store: ProjectStore): Promise<unknown>
+  notePluginConnection?(store: ProjectStore, info: { pluginVersion?: string; lastEventAt?: string }): Promise<unknown>
+  generateAdapter?(store: ProjectStore, spec: Record<string, unknown>): Promise<unknown>
+  rollback?(store: ProjectStore, adapterId: string): Promise<unknown>
 }
 
 interface Ctx {
@@ -394,6 +397,26 @@ route("GET", "/api/projects/:id/integration/diff", async ctx => {
   const s = store(ctx); if (!s) return
   if (!ctx.host) return bad(ctx, "integration layer not attached", 501)
   ok(ctx, await ctx.host.integrationDiff(s))
+})
+
+route("POST", "/api/projects/:id/plugin/connect", async ctx => {
+  const s = store(ctx); if (!s) return
+  if (!ctx.host?.notePluginConnection) return bad(ctx, "integration layer not attached", 501)
+  ok(ctx, await ctx.host.notePluginConnection(s, { pluginVersion: ctx.body.pluginVersion as string, lastEventAt: ctx.body.lastEventAt as string }))
+})
+
+route("POST", "/api/projects/:id/adapter/generate", async ctx => {
+  const s = store(ctx); if (!s) return
+  if (!ctx.host?.generateAdapter) return bad(ctx, "integration layer not attached", 501)
+  ok(ctx, await ctx.host.generateAdapter(s, ctx.body))
+})
+
+route("POST", "/api/projects/:id/adapter/rollback", async ctx => {
+  const s = store(ctx); if (!s) return
+  if (!ctx.host?.rollback) return bad(ctx, "integration layer not attached", 501)
+  const adapterId = ctx.body.adapterId as string
+  if (!adapterId) return bad(ctx, "adapterId required")
+  ok(ctx, await ctx.host.rollback(s, adapterId))
 })
 
 // ---------------- router ----------------
