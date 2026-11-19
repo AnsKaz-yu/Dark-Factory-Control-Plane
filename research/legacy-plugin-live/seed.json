@@ -1,0 +1,439 @@
+{
+  "project": "ReservoirOS",
+  "subtitle": "Стадия реализации — живой дашборд",
+  "schemaVersion": 1,
+  "loopStages": [
+    "feature",
+    "red",
+    "implement",
+    "green",
+    "gates",
+    "c4",
+    "chronology",
+    "commit",
+    "ci"
+  ],
+  "taskStatuses": [
+    "awaiting-approval",
+    "ready",
+    "in-progress",
+    "blocked",
+    "done"
+  ],
+  "architecture": {
+    "id": "reservoiros",
+    "name": "ReservoirOS",
+    "kind": "system",
+    "status": "in-progress",
+    "readiness": 8,
+    "doc": "Промышленный симулятор разработки месторождений (ядро AIOS). Rust-ядро + CUDA C++ + MPI + FFI-решатель. Реализация Phase 2.",
+    "children": [
+      {
+        "id": "reservoiros.engine",
+        "name": "Simulation Engine",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "Rust-ядро: FV-дискретизация, Newton, интерфейс решателя, physics-модули (REQ-01/03).",
+        "children": [
+          {
+            "id": "reservoiros.engine.core",
+            "name": "Core",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "Сетка, FV-дискретизация, Newton-итерации, состояния, интерфейс решателя (REQ-03).",
+            "children": [
+              {
+                "id": "reservoiros.engine.core.registry",
+                "name": "Module Registry",
+                "kind": "code",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Микроядро: discover/validate/register модулей; Abstract Factory. REQ-01.",
+                "children": []
+              },
+              {
+                "id": "reservoiros.engine.core.eventbus",
+                "name": "Event Bus",
+                "kind": "code",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Observer: типизированные SimEvent pub/sub; наблюдаемость. REQ-18.",
+                "children": []
+              },
+              {
+                "id": "reservoiros.engine.core.di",
+                "name": "DI Container",
+                "kind": "code",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "IoC: CoreServices модулям; loose coupling.",
+                "children": []
+              },
+              {
+                "id": "reservoiros.engine.core.pipeline",
+                "name": "Simulation Pipeline",
+                "kind": "code",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Chain of Responsibility: конфигурируемые стадии шага.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "reservoiros.engine.solver",
+            "name": "Linear Solver",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "BiCGStab + MILU(0)/CPR; бэкенды FFI(PETSc/AmgX) | pure-Rust | GPU (REQ-07).",
+            "children": []
+          },
+          {
+            "id": "reservoiros.engine.physics",
+            "name": "Physics Modules",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "Trait PhysicsModule: blackoil/compositional/thermal/geomech/aquifer/wells/tracer/eor/dualporo (REQ-01/02).",
+            "children": [
+              {
+                "id": "reservoiros.engine.physics.blackoil",
+                "name": "Black-oil",
+                "kind": "component",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Black-oil: PVT/relperm/flux (REQ-02/03).",
+                "children": []
+              },
+              {
+                "id": "reservoiros.engine.physics.compositional",
+                "name": "Compositional",
+                "kind": "component",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Flash Rachford-Rice + EOS (PR/SRK) (REQ-02).",
+                "children": []
+              },
+              {
+                "id": "reservoiros.engine.physics.thermal",
+                "name": "Thermal",
+                "kind": "component",
+                "status": "planned",
+                "readiness": 0,
+                "doc": "Энтальпии/теплопроводность (REQ-02).",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "reservoiros.engine.io",
+            "name": "IO",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "Keyword-парсер (ECLIPSE, 2685), output writers UNSMRY/UNRST/EGRID/INIT (REQ-11).",
+            "children": []
+          },
+          {
+            "id": "reservoiros.engine.parallel",
+            "name": "MPI Parallel",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "Domain decomposition + halo-exchange + SUM reduction (REQ-06).",
+            "children": []
+          },
+          {
+            "id": "reservoiros.engine.gpu",
+            "name": "GPU Layer",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "cudarc + CUDA C++ ядра (flux/PVT/relperm/linear-solver) (REQ-05).",
+            "children": []
+          },
+          {
+            "id": "reservoiros.engine.contracts",
+            "name": "Contracts (Ports)",
+            "kind": "component",
+            "status": "planned",
+            "readiness": 0,
+            "doc": "Стабильный semver crate интерфейсов (PhysicsModule/LinearBackend/ComputeBackend/KeywordHandler/IO). Ядро и модули зависят только от него (DIP). REQ-01.",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "reservoiros.api",
+        "name": "API Gateway",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "gRPC/REST (tonic/axum) + декларативная схема модели (REQ-04).",
+        "children": []
+      },
+      {
+        "id": "reservoiros.mcp",
+        "name": "MCP Server",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "MCP-tools для AI-агентов (REQ-04).",
+        "children": []
+      },
+      {
+        "id": "reservoiros.python",
+        "name": "Python Bindings",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "PyO3-биндинги (REQ-04).",
+        "children": []
+      },
+      {
+        "id": "reservoiros.gui",
+        "name": "GUI Client",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "GUI как клиент API (web/egui) (REQ-04).",
+        "children": []
+      },
+      {
+        "id": "reservoiros.harness",
+        "name": "Verification Harness",
+        "kind": "container",
+        "status": "done",
+        "readiness": 100,
+        "doc": "Оракулы + сравнение + CRAP + TDD + C4-gate + Jenkins CI (REQ-21/22). Инфраструктура готова.",
+        "children": []
+      },
+      {
+        "id": "reservoiros.sdk",
+        "name": "Module SDK",
+        "kind": "container",
+        "status": "planned",
+        "readiness": 0,
+        "doc": "SDK сторонних модулей: contracts + helpers + примеры; compile-time/runtime plugin. REQ-01/22.",
+        "children": []
+      }
+    ]
+  },
+  "tasks": {
+    "H1": {
+      "id": "H1",
+      "title": "Утверждение стека (Rust+CUDA+MPI+FFI)",
+      "component": "reservoiros",
+      "status": "awaiting-approval",
+      "loopStage": "feature",
+      "blockedBy": [],
+      "owner": "user",
+      "requirement": "REQ-01",
+      "progress": 0,
+      "doc": "Человеческий контроль H1: пользователь утверждает стек перед стартом Phase 2."
+    },
+    "T-000": {
+      "id": "T-000",
+      "title": "Проектирование архитектуры решения (solution architecture)",
+      "component": "reservoiros",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "H1"
+      ],
+      "owner": null,
+      "requirement": "REQ-01/03/04",
+      "progress": 0,
+      "doc": "Проектирование архитектуры решения ДО реализации. Обязательно: изучение референсной документации Phase 1 + доп. исследования. Дизайн: модульная архитектура (crate на домен, trait PhysicsModule), выбор решателя и FFI-бэкендов (PETSc/AmgX), API-схема, GPU/MPI стратегия, рестарт/ошибки. Артефакты: ADR (H3), обновление C4 (G1), декомпозиция на T-001+. Spec-chain: T2 spec-kit. Философия: улучшаем эталон, где можно. Блокирует implementation-задачи."
+    },
+    "T-001": {
+      "id": "T-001",
+      "title": "cargo workspace + core (сетка/FV/Newton/состояния)",
+      "component": "reservoiros.engine.core",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-000"
+      ],
+      "owner": null,
+      "requirement": "REQ-01/03",
+      "progress": 0,
+      "doc": "Каркас ядра: cargo workspace, сетка, FV-дискретизация, Newton, состояния, интерфейс решателя."
+    },
+    "T-002": {
+      "id": "T-002",
+      "title": "trait PhysicsModule + реестр модулей",
+      "component": "reservoiros.engine.physics",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-001"
+      ],
+      "owner": null,
+      "requirement": "REQ-01",
+      "progress": 0,
+      "doc": "Модульность: trait PhysicsModule, регистрация доменов без правки ядра."
+    },
+    "T-003": {
+      "id": "T-003",
+      "title": "io: keyword-парсер (ECLIPSE)",
+      "component": "reservoiros.engine.io",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-001"
+      ],
+      "owner": null,
+      "requirement": "REQ-11",
+      "progress": 0,
+      "doc": "Парсер keyword-системы (2685), output writers."
+    },
+    "T-004": {
+      "id": "T-004",
+      "title": "solver: BiCGStab+MILU/CPR (FFI PETSc/AmgX)",
+      "component": "reservoiros.engine.solver",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-001"
+      ],
+      "owner": null,
+      "requirement": "REQ-07",
+      "progress": 0,
+      "doc": "Линейный решатель, преконд CPR/AMG, FFI-бэкенды."
+    },
+    "T-005": {
+      "id": "T-005",
+      "title": "API-схема модели + gRPC/REST каркас",
+      "component": "reservoiros.api",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-001"
+      ],
+      "owner": null,
+      "requirement": "REQ-04",
+      "progress": 0,
+      "doc": "Декларативная схема (serde), gRPC/REST полного цикла."
+    },
+    "T-006": {
+      "id": "T-006",
+      "title": "physics-blackoil + Newton + FV",
+      "component": "reservoiros.engine.physics.blackoil",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-002",
+        "T-004"
+      ],
+      "owner": null,
+      "requirement": "REQ-02/03",
+      "progress": 0,
+      "doc": "Black-oil домен, верификация на DEMO/M90."
+    },
+    "T-007": {
+      "id": "T-007",
+      "title": "Restart/checkpoint + воспроизводимость",
+      "component": "reservoiros.engine.core",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-006"
+      ],
+      "owner": null,
+      "requirement": "REQ-09/10",
+      "progress": 0,
+      "doc": "Restart-контракт, checkpoint/resume, детерминизм."
+    },
+    "T-008": {
+      "id": "T-008",
+      "title": "gpu: cudarc + CUDA-ядра",
+      "component": "reservoiros.engine.gpu",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-004",
+        "T-006"
+      ],
+      "owner": null,
+      "requirement": "REQ-05",
+      "progress": 0,
+      "doc": "GPU-ядра (flux/PVT/relperm), CPU/GPU-эквивалентность."
+    },
+    "T-009": {
+      "id": "T-009",
+      "title": "parallel: MPI domain decomposition",
+      "component": "reservoiros.engine.parallel",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-006"
+      ],
+      "owner": null,
+      "requirement": "REQ-06",
+      "progress": 0,
+      "doc": "MPI decomposition + halo-exchange, multi-node."
+    },
+    "T-010": {
+      "id": "T-010",
+      "title": "physics-compositional (flash/EOS)",
+      "component": "reservoiros.engine.physics.compositional",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-006"
+      ],
+      "owner": null,
+      "requirement": "REQ-02",
+      "progress": 0,
+      "doc": "Compositional: flash Rachford-Rice + EOS."
+    },
+    "T-011": {
+      "id": "T-011",
+      "title": "physics-thermal",
+      "component": "reservoiros.engine.physics.thermal",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-006"
+      ],
+      "owner": null,
+      "requirement": "REQ-02",
+      "progress": 0,
+      "doc": "Thermal: энтальпии/теплопроводность, SAGD."
+    },
+    "T-012": {
+      "id": "T-012",
+      "title": "MCP-сервер + Python-биндинги",
+      "component": "reservoiros.mcp",
+      "status": "blocked",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-005"
+      ],
+      "owner": null,
+      "requirement": "REQ-04",
+      "progress": 0,
+      "doc": "MCP-tools + PyO3, guardrails/наблюдаемость."
+    },
+    "T-013": {
+      "id": "T-013",
+      "title": "contracts: консолидация IO/solver-портов (DIP) + re-export",
+      "component": "reservoiros.engine.contracts",
+      "status": "ready",
+      "loopStage": "feature",
+      "blockedBy": [
+        "T-003",
+        "T-004"
+      ],
+      "owner": null,
+      "requirement": "REQ-01",
+      "progress": 0,
+      "doc": "Перенос IO/solver-портов (KeywordHandler/OutputWriter/ModelBuilder, LinearBackend/MatrixOp/SolverCfg) в стабильный contracts (extensibility.md §4.1); re-export в io/solver без breaking change. TDD."
+    }
+  },
+  "agents": {}
+}

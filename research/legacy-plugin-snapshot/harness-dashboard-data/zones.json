@@ -1,0 +1,601 @@
+{
+  "description": "Зоны ответственности задач (multi-agent). Агент на feature/<task> коммитит только файлы своей зоны + shared. Zone-guard в pre-commit hook отклоняет чужие файлы. Globs: PowerShell -like / git pathspec (* включает /).",
+  "shared": [
+    "README.md",
+    ".gitignore",
+    "docs/*",
+    "*.md",
+    "architecture/*",
+    ".cargo-crap.toml"
+  ],
+  "tasks": {
+    "T-000": [
+      "docs/features/*"
+    ],
+    "T-001": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "crates/core/*"
+    ],
+    "T-002": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "crates/physics/*"
+    ],
+    "T-003": [
+      "crates/io/*"
+    ],
+    "T-004": [
+      "crates/solver/*"
+    ],
+    "T-005": [
+      "crates/api/*"
+    ],
+    "T-006": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007": [
+      "crates/core/*"
+    ],
+    "T-008": [
+      "crates/gpu/*",
+      "cuda/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-009": [
+      "crates/parallel/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-010": [
+      "crates/physics/compositional/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-012": [
+      "crates/mcp/*",
+      "crates/python/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-013": [
+      "crates/contracts/*",
+      "crates/io/src/deck_parser.rs",
+      "crates/io/src/model.rs",
+      "crates/io/src/keyword_registry.rs",
+      "crates/io/src/writers.rs",
+      "crates/io/tests/ports_reexport_test.rs",
+      "crates/solver/src/ports.rs",
+      "crates/solver/src/lib.rs",
+      "crates/solver/src/matrix.rs",
+      "crates/solver/src/block_matrix.rs",
+      "crates/solver/src/precond.rs",
+      "crates/solver/src/block_precond.rs",
+      "crates/solver/src/backend.rs",
+      "crates/solver/tests/ports_reexport_test.rs"
+    ],
+    "T-014": [
+      "crates/solver/*"
+    ],
+    "T-015": [
+      "crates/solver/*"
+    ],
+    "T-016": [
+      "crates/solver/*"
+    ],
+    "T-016a": [
+      "crates/solver/*"
+    ],
+    "T-016a-CLOSE": [
+      "docs/features/t-016a/*",
+      "output/response.md"
+    ],
+    "T-019": [
+      "crates/solver/*",
+      "quality/mutation.ps1"
+    ],
+    "T-020": [
+      "crates/solver/*",
+      "crates/contracts/src/solver_ports.rs",
+      "crates/contracts/src/lib.rs",
+      "crates/contracts/tests/solver_ports_test.rs"
+    ],
+    "T-REQ-08a": [
+      "crates/solver/*"
+    ],
+    "T-018": [
+      "crates/cli/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-003a": [
+      "crates/io/*",
+      "crates/contracts/src/io_ports.rs",
+      "crates/contracts/src/lib.rs",
+      "crates/contracts/tests/io_ports_test.rs"
+    ],
+    "T-022": [
+      "crates/gui/*",
+      "ui/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-022-E2E": [
+      "crates/gui/*",
+      "ui/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-023": [
+      "crates/api/*"
+    ],
+    "T-024": [
+      "crates/mcp/*",
+      "crates/python/*"
+    ],
+    "T-README-UPDATE": [
+      "README.md"
+    ],
+    "T-ROADMAP-ENGINE": [
+      "docs/roadmap.md",
+      "docs/requirements_registry.md",
+      "crates/contracts/tests/docs_consistency_test.rs"
+    ],
+    "T-RELEASE-ENGINEERING": [
+      "CHANGELOG.md",
+      "docs/release/*"
+    ],
+    "T-006n": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-REQ-08b": [
+      "crates/core/*"
+    ],
+    "T-API-GUARDRAILS-MUTANTS": [
+      "crates/api/*"
+    ],
+    "T-IO-TOOLS-VERIFY": [
+      "crates/io/*"
+    ],
+    "T-006j": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006g": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006k": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006h": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006l": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006m": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006o": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-EXIT-UNIFY": [
+      "crates/contracts/*",
+      "crates/solver/*"
+    ],
+    "T-001a": [
+      "crates/contracts/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-017": [
+      "crates/solver/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-017a": [
+      "crates/solver/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-021": [
+      "crates/solver/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006a": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006b": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006c": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006d": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006e": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006f": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006i": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007a": [
+      "crates/core/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007b": [
+      "crates/core/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007c": [
+      "crates/core/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-009a": [
+      "crates/parallel/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-008a": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-GPU-LINALG": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007d": [
+      "crates/io/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007e": [
+      "crates/core/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-COMBUSTION": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-HEATLOSS": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-BOTHERMAL": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-SPE4": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-ORACLE-DEMO-M90": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-010-CAL": [
+      "crates/physics/compositional/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-002-E2E": [
+      "crates/physics/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-022-REBASE-FIX": [
+      "crates/gui/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006-GAS-INJ-DRSDT": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-ORACLE-SPE1CASE2": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-API-SCHEMA-MUTANTS": [
+      "crates/api/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-IO-KEYWORDS-FULL": [
+      "crates/io/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-DT-REFERENCE-PROBE": [
+      "crates/core/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-DT-CONTROLLER-ADOPT": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-R1": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-R2": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-R3": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-IMPL": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-ORACLE-SPE10": [
+      "crates/physics/blackoil/*",
+      "crates/solver/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-012-E2E": [
+      "crates/mcp/*",
+      "crates/python/*",
+      "crates/api/*",
+      "crates/gui/src/client.rs",
+      "crates/gui/tests/parity.rs",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-PVTW-EXT": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-GPU-MIRROR": [
+      "crates/gpu/*",
+      "cuda/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006p-GPU-MIRROR": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-R3a": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-R3b": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006j-STANDO-VISC": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-DECK-UNIFY": [
+      "crates/api/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-PROBE-TRAN-E1": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-PROBE-WELL-E1": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-PROBE-RELPERM-E1": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-PROBE-SPE10-E2": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006p": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-002-E2E-FIX": [
+      "crates/physics/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-PROBE-EQUIL-REGIONS": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007f": [
+      "crates/io/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-007g": [
+      "crates/contracts/*",
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-008b": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-008c": [
+      "crates/gpu/*",
+      "cuda/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-GPU-PVT-DERIVS": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-GPU-PVTOPTS": [
+      "crates/gpu/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-006m-ORACLE-TUNE": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-CLIPPY-LEGACY-APPROX": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-009b": [
+      "crates/parallel/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-DARCY-INTERNAL-UNITS": [
+      "crates/physics/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-SIM-REMAINING-CLAMP": [
+      "crates/physics/blackoil/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-API-DECK-MUTANTS": [
+      "crates/api/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-HEATLOSS-C2V": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-HEATLOSS-30D": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-AMG-AGG-LINEAR": [
+      "crates/solver/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "T-011-HEATLOSS-30D": [
+      "crates/physics/thermal/*",
+      "Cargo.toml",
+      "Cargo.lock"
+    ]
+  },
+  "harness": {
+    "description": "Зоны для harness-репо (общая инфраструктура). Координация через задачи; shared разрешён всем.",
+    "shared": [
+      "*.md",
+      ".gitignore",
+      "CHRONOLOGY.md",
+      "DECISIONS.md",
+      "MULTI_AGENT.md"
+    ],
+    "areas": {
+      "c4": [
+        "c4/*"
+      ],
+      "crap": [
+        "crap/*"
+      ],
+      "tdd": [
+        "tdd/*"
+      ],
+      "oracle": [
+        "oracle/*"
+      ],
+      "ci": [
+        "ci/*"
+      ],
+      "dmtools": [
+        "dmtools/*"
+      ],
+      "dashboard": [
+        "plugin/*",
+        "dashboard/*",
+        "harness-model.json"
+      ],
+      "scripts": [
+        "scripts/*"
+      ]
+    }
+  }
+}

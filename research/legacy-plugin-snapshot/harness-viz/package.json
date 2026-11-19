@@ -1,0 +1,13 @@
+{
+  "name": "opencode-harness-viz",
+  "version": "1.0.0",
+  "description": "OpenCode plugin: interactive HTML visualization of a project harness (gates, development loop, tools, control points)",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": ["index.ts", "generate-viz.mjs"],
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "opencode-reservoiros-dashboard",
+  "version": "1.0.0",
+  "description": "OpenCode plugin: live ReservoirOS implementation dashboard (architecture drill-down, task graph, CRAP, test coverage, real-time multi-agent)",
+  "type": "module",
+  "exports": { ".": "./index.ts" },
+  "files": ["index.ts", "state-io.js", "dashboard.html", "seed.json"],
+  "dependencies": { "@opencode/plugin": "latest" }
+}

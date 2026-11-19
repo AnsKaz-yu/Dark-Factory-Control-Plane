@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReservoirOS — стадия реализации</title>
+<style>
+:root{--bg:#0b1020;--panel:#141b2e;--panel2:#1c2540;--txt:#e6ebf5;--muted:#93a0bd;--line:#2a3554;--acc:#a855f7;}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#1a2340,#0b1020);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.45}
+.app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;height:100vh}
+header{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:14px 22px;border-bottom:1px solid var(--line);background:rgba(20,27,46,.7);flex-wrap:wrap}
+header h1{font-size:19px;margin:0}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#4ade80}
+.live .dot{width:9px;height:9px;border-radius:50%;background:#4ade80;animation:pulse 1.6s infinite}
+.live.off{color:#f87171}.live.off .dot{background:#f87171;animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hstat{font-size:12px;color:var(--muted)}.hstat b{color:var(--txt)}
+.overall{display:flex;align-items:center;gap:8px;margin-left:auto}
+.bar{width:160px;height:9px;background:var(--panel2);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#a855f7,#22c55e)}
+aside{border-right:1px solid var(--line);overflow-y:auto;padding:14px}
+aside h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 10px}
+.tnode{padding:7px 9px;border-radius:8px;cursor:pointer;margin:2px 0;border-left:3px solid transparent}
+.tnode:hover{background:var(--panel2)}
+.tnode.sel{background:var(--panel2);border-left-color:var(--acc)}
+.tnode .row{display:flex;align-items:center;gap:7px}
+.sdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tname{font-size:13px;flex:1;word-break:break-word;line-height:1.3}
+.tpct{font-size:11px;color:var(--muted)}
+.crapb{font-size:10px;padding:0 6px;border-radius:5px;font-weight:600}
+.tkids{margin-left:14px;border-left:1px dashed var(--line);padding-left:6px}
+main{overflow-y:auto;padding:20px 24px}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px}
+.crumb a{color:#7dd3fc;cursor:pointer;text-decoration:none}.crumb a:hover{text-decoration:underline}
+.dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.dhead h2{font-size:22px;margin:0}
+.kind{font-size:11px;background:var(--panel2);border:1px solid var(--line);padding:2px 9px;border-radius:6px;color:var(--muted)}
+.status{font-size:12px;padding:2px 10px;border-radius:6px;font-weight:600}
+.metrics{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:150px}
+.mcard .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mcard .val{font-size:24px;font-weight:700;margin-top:3px}
+.mcard .sub{font-size:11px;color:var(--muted)}
+.doc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14px;color:#cdd6ea;margin:14px 0}
+section h3{font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+section h3 .tag{font-size:11px;color:var(--muted);font-weight:400}
+.graph{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}
+svg text{font-family:'Segoe UI',sans-serif}
+.gnode{cursor:pointer}
+.gnode rect{transition:.15s}.gnode:hover rect{stroke-width:2.5}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
+.refresh-btn{background:var(--panel2);border:1px solid var(--line);color:#7dd3fc;padding:5px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:.15s}
+.refresh-btn:hover{border-color:#7dd3fc;background:#22304f}
+.refresh-btn:active{transform:scale(.96)}
+.refresh-btn.loading{opacity:.6;cursor:wait}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);color:#7dd3fc;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;margin-bottom:10px;transition:.15s;max-width:100%;word-break:break-word}
+.back-btn:hover{border-color:#7dd3fc;background:#22304f;transform:translateX(-2px)}
+.agent-link{cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.agent-link:hover{border-color:#7dd3fc;background:#22304f;transform:translateY(-1px)}
+.comp-link{color:#7dd3fc;cursor:pointer;text-decoration:none;border-bottom:1px dashed #7dd3fc66;transition:.15s}
+.comp-link:hover{color:#a5f3fc;border-bottom-color:#a5f3fc}
+.comp-link-hint{font-size:11px;color:var(--muted);margin-left:4px}
+.comp-link:hover .comp-link-hint{color:#7dd3fc}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:6px 9px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:500;font-size:12px}
+.covbar{width:120px;height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}
+.covbar>i{display:block;height:100%;background:#22c55e}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 26px;max-width:640px;width:92%;max-height:86vh;overflow-y:auto}
+.modal h3{margin:0 0 4px;font-size:18px}
+.modal .close{float:right;cursor:pointer;color:var(--muted);font-size:20px}
+.stepper{display:flex;gap:4px;flex-wrap:wrap;margin:14px 0}
+.step{font-size:11px;padding:4px 10px;border-radius:6px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+.step.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+.step.done{background:#14532d;color:#4ade80;border-color:#14532d}
+.kv{font-size:13px;margin:6px 0}.kv b{color:var(--muted);font-weight:500;display:inline-block;min-width:120px}
+.agents{display:flex;gap:8px;flex-wrap:wrap}
+.agent{font-size:11px;background:var(--panel2);border:1px solid var(--line);padding:3px 10px;border-radius:14px}
+.agent b{color:#7dd3fc}
+.empty{color:var(--muted);font-size:13px;padding:14px}
+.diagram-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.diagram-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:zoom-in;transition:.15s}
+.diagram-card:hover{border-color:var(--acc)}
+.diagram-card .cap{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.diagram-card .cap b{color:#7dd3fc;font-weight:600}
+.diagram-card img{width:100%;border-radius:8px;background:#0d1424;display:block}
+.diagram-full{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.diagram-full img{width:100%;border-radius:8px;background:#0d1424;cursor:zoom-in}
+.imgmodal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:60;cursor:zoom-out}
+.imgmodal-bg.show{display:flex}
+.imgmodal-bg img{max-width:96vw;max-height:96vh;border-radius:8px;background:#0d1424}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ReservoirOS — стадия реализации</h1>
+    <span class="live off" id="live"><span class="dot"></span><span id="liveTxt">connecting…</span></span>
+    <span class="hstat" title="Время последней проверки/обновления дашборда (время компьютера). Обновляется при каждом обновлении, в т.ч. по кнопке «Обновить».">обновлено: <b id="upd">—</b></span>
+    <span class="hstat" title="Время последнего изменения состояния (project-state.json) агентами">данные от: <b id="stateUpd">—</b></span>
+    <span class="hstat">агенты: <b id="agentCount">0</b></span>
+    <button id="refreshBtn" class="refresh-btn" title="Обновить состояние вручную">⟳ Обновить</button>
+    <div class="overall"><span class="hstat">готовность</span><div class="bar"><i id="overallBar" style="width:0%"></i></div><b id="overallPct">0%</b></div>
+  </header>
+  <aside><h2>Архитектура (клик → детали)</h2><div id="tree"></div></aside>
+  <main id="main"></main>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="imgmodal-bg" id="imgModal"><img id="imgModalImg" alt="diagram"></div>
+<script>
+const STATUS={planned:"#64748b","in-progress":"#3b82f6",done:"#22c55e",blocked:"#ef4444"};
+const TSTATUS={"awaiting-approval":"#f59e0b",ready:"#06b6d4","in-progress":"#3b82f6",blocked:"#ef4444",done:"#22c55e"};
+const TLABEL={"awaiting-approval":"ждёт утверждения",ready:"готова к реализации","in-progress":"реализуется",blocked:"заблокирована",done:"готово"};
+const LOOP=["feature","red","implement","green","gates","c4","chronology","commit","ci"];
+const LOOPLBL={feature:"фича/тесты",red:"RED",implement:"реализация",green:"GREEN",gates:"гейты",c4:"C4",chronology:"хронология",commit:"коммит",ci:"CI"};
+let S=null, sel=null, DIAG=null, lastFetch=null;
+function fmtLocal(d){const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+const DIAG_BASE="http://127.0.0.1:8092";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function node(id,n=S?.architecture){if(!n)return null;if(n.id===id)return n;for(const c of n.children||[]){const r=node(id,c);if(r)return r}return null}
+function path(id,n=S?.architecture,acc=[]){if(!n)return null;if(n.id===id)return[...acc,n];for(const c of n.children||[]){const r=path(id,c,[...acc,n]);if(r)return r}return null}
+function descIds(n){let a=[n.id];(n.children||[]).forEach(c=>a=a.concat(descIds(c)));return a}
+function subtree(n){let a=[n];(n.children||[]).forEach(c=>a=a.concat(subtree(c)));return a}
+// Эффективные тесты узла: собственные (report_tests), иначе — сумма тестов задач этого узла
+// (report_task_tests). Собственный отчёт приоритетнее, чтобы не задваивать одни и те же данные.
+function nodeTests(x){
+  if(x.tests)return x.tests;
+  const ts=Object.values(S.tasks||{}).filter(t=>t.component===x.id&&t.tests);
+  if(!ts.length)return null;
+  let p=0,f=0,t=0;ts.forEach(tt=>{p+=tt.tests.passed||0;f+=tt.tests.failed||0;t+=tt.tests.total||0});
+  return {passed:p,failed:f,total:t};
+}
+// Готовность узла: по прогрессу задач поддерева (done=100); без задач — среднее детей;
+// лист без задач наследует готовность ближайшего предка с задачами (иначе ручная/статус).
+// Правдивый прогресс: done=100; in-progress=max(reported, пол стадии loop); ready/blocked=0.
+const STAGE_FLOOR={feature:5,red:20,implement:45,green:65,gates:80,c4:88,chronology:92,commit:96,ci:100};
+function taskProg(t){if(t.status==="done")return 100;if(t.status==="in-progress")return Math.max(t.progress||0,STAGE_FLOOR[t.loopStage]||0);return 0}
+// Агенты DMTools (CliAgent) — отдельный источник (реестр .locks/dmtools-agents.json).
+function dmtoolsAgents(){return S.dmtoolsAgents||[]}
+function activeDmtools(){return dmtoolsAgents().filter(a=>a.status==="running")}
+function dmtoolsFor(n){const ids=descIds(n);return dmtoolsAgents().filter(a=>{const t=S.tasks[a.task];return t&&ids.includes(t.component)})}
+const DMSTATUS={running:"#3b82f6",done:"#22c55e",failed:"#ef4444"};
+const DMLABEL={running:"в работе",done:"завершено",failed:"гейты не пройдены"};
+function readinessOf(n){
+  const ts=tasksFor(n);
+  if(ts.length)return Math.round(ts.reduce((a,t)=>a+taskProg(t),0)/ts.length);
+  const kids=n.children||[];
+  if(kids.length)return Math.round(kids.map(readinessOf).reduce((a,b)=>a+b,0)/kids.length);
+  // лист без задач: наследуем готовность предка только для внутренних подмодулей (kind=code);
+  // самостоятельные компоненты/контейнеры без задач сохраняют ручную/статусную готовность.
+  if(n.kind==="code"){const p=path(n.id)||[];for(let i=p.length-2;i>=0;i--){const at=tasksFor(p[i]);if(at.length)return Math.round(at.reduce((a,t)=>a+taskProg(t),0)/at.length);}}
+  return n.readiness??(n.status==="done"?100:0);
+}
+// Свёртка метрик по поддереву: готовность (по задачам), CRAP (худший),
+// покрытие (пропорционально объёму кода: Σ покрытых строк / Σ всех строк), тесты и задачи (сумма).
+function rollup(n){
+  const readiness=readinessOf(n);
+  const sub=subtree(n);
+  const craps=sub.map(x=>x.crap).filter(v=>v!=null);
+  const crap=craps.length?Math.max(...craps):null;
+  let p=0,f=0,t=0,hasT=false;sub.forEach(x=>{const tt=nodeTests(x);if(tt){p+=tt.passed||0;f+=tt.failed||0;t+=tt.total||0;hasT=true}});
+  const tests=hasT?{passed:p,failed:f,total:t}:null;
+  // Покрытие: взвешивание по объёму кода (строки), а не по числу тестов.
+  const covs=sub.filter(x=>(x.coverage??(x.tests&&x.tests.coverage))!=null);
+  let coverage=null,coverageLines=null,coverageApprox=false;
+  if(covs.length){
+    let tot=0,cov=0,wU=0,sU=0;
+    covs.forEach(x=>{
+      const c=x.coverage??x.tests.coverage;
+      const total=x.linesTotal??x.loc??(x.tests&&(x.tests.linesTotal??x.tests.loc))??null;
+      if(total!=null&&total>0){
+        const covered=x.linesCovered??(x.tests&&x.tests.linesCovered)??(c/100*total);
+        tot+=total;cov+=covered;
+      }else{ // нет данных о строках — приближённый вес по числу тестов (помечается ≈)
+        const w=(x.tests&&x.tests.total)||1;sU+=c*w;wU+=w;coverageApprox=true;
+      }
+    });
+    const den=tot+wU;
+    if(den>0){coverage=Math.round((cov+sU)/den*1000)/10;coverageLines=tot>0?{covered:Math.round(cov),total:tot}:null;}
+  }
+  const ts=tasksFor(n);
+  const tasks={total:ts.length,inProgress:ts.filter(x=>x.status==="in-progress").length,done:ts.filter(x=>x.status==="done").length,blocked:ts.filter(x=>x.status==="blocked").length};
+  return {readiness,crap,coverage,coverageLines,coverageApprox,tests,tasks};
+}
+function crapColor(v){if(v==null)return"#64748b";if(v<=15)return"#22c55e";if(v<=30)return"#f59e0b";return"#ef4444"}
+function crapBadge(v){const c=crapColor(v);return `<span class="crapb" style="background:${c}22;color:${c};border:1px solid ${c}55">CRAP ${v==null?"—":v}</span>`}
+
+async function loadDiag(){for(const base of [DIAG_BASE,""]){try{const d=await fetch(base+"/c4",{cache:"no-store"});const j=await d.json();if(j&&typeof j.available!=="undefined")return j}catch(e){}}return {available:false,message:"C4-документация не найдена. Если в проекте появится C4 (LikeC4), здесь появятся UML-диаграммы компонентов."}}
+async function fetchState(){const r=await fetch("/state",{cache:"no-store"});S=await r.json();lastFetch=new Date();if(!sel)sel=S.architecture.id;if(!DIAG){DIAG=await loadDiag()}render()}
+// Агент активен, только если его задача СЕЙЧАС в работе и он её владелец (не устаревшая запись реестра).
+const AGENT_STALE_MS=15*60*1000;
+function agentState(name,v){const tk=S.tasks[v.task];return {task:tk,active:!!tk&&tk.status==="in-progress"&&tk.owner===name,done:!!tk&&tk.status==="done"&&tk.owner===name,stale:!!v.lastSeen&&(Date.now()-Date.parse(v.lastSeen))>AGENT_STALE_MS};}
+function activeAgents(){return Object.entries(S.agents||{}).filter(([a,v])=>agentState(a,v).active);}
+function connectSSE(){try{const es=new EventSource("/events");es.onopen=()=>{$("live").classList.remove("off");$("liveTxt").textContent="live"};es.onerror=()=>{$("live").classList.add("off");$("liveTxt").textContent="reconnecting…"};es.onmessage=()=>fetchState()}catch(e){$("liveTxt").textContent="polling";setInterval(fetchState,4000)}}
+
+function render(){
+  if(!S)return;
+  $("upd").textContent=lastFetch?fmtLocal(lastFetch):"—";
+  const su=$("stateUpd");if(su){const du=S.gitUpdated||S.updated;su.textContent=du?fmtLocal(new Date(du)):"—";}
+  const agents=activeAgents();
+  const dmActive=activeDmtools();
+  $("agentCount").textContent=agents.length+dmActive.length;
+  $("agentCount").parentElement.title=`Активные агенты: ${agents.length} opencode + ${dmActive.length} DMTools (задача в работе)`;
+  const ov=rollup(S.architecture).readiness;$("overallBar").style.width=ov+"%";$("overallPct").textContent=ov+"%";
+  renderTree();renderDetail();
+}
+function renderTree(){
+  function rec(n,depth){
+    const c=STATUS[n.status]||"#64748b";
+    const selCls=n.id===sel?"sel":"";
+    const ru=rollup(n);
+    let h=`<div class="tnode ${selCls}" data-id="${esc(n.id)}"><div class="row"><span class="sdot" style="background:${c}"></span><span class="tname">${esc(n.name)}</span><span class="tpct">${ru.readiness}%</span>${crapBadge(ru.crap)}</div></div>`;
+    if((n.children||[]).length)h+=`<div class="tkids">${n.children.map(c=>rec(c,depth+1)).join("")}</div>`;
+    return h;
+  }
+  $("tree").innerHTML=rec(S.architecture,0);
+  $("tree").querySelectorAll(".tnode").forEach(el=>el.onclick=e=>{e.stopPropagation();sel=el.dataset.id;render()});
+}
+function renderDetail(){
+  const n=node(sel);if(!n){$("main").innerHTML="<div class='empty'>нет данных</div>";return}
+  const p=path(sel)||[n];
+  const crumb=p.map((x,i)=>i<p.length-1?`<a data-id="${esc(x.id)}">${esc(x.name)}</a>`:`<span>${esc(x.name)}</span>`).join(" / ");
+  const c=STATUS[n.status]||"#64748b";
+  const ru=rollup(n);
+  const t=ru.tests||{};
+  const cov=ru.coverage;
+  let h=`${p.length>1?`<button class="back-btn" id="backBtn" title="На уровень выше">← Назад · ${esc(p[p.length-2].name)}</button>`:""}<div class="crumb">${crumb}</div>
+  <div class="dhead"><h2>${esc(n.name)}</h2><span class="kind">${esc(n.kind)}</span><span class="status" style="background:${c}22;color:${c}">${esc(n.status)}</span></div>
+  <div class="metrics">
+    <div class="mcard"><div class="lbl">Готовность</div><div class="val">${ru.readiness}%</div><div class="bar" style="width:130px;margin-top:6px"><i style="width:${ru.readiness}%"></i></div><div class="sub">done=100 · в работе — по стадии loop · по поддереву</div></div>
+    <div class="mcard"><div class="lbl">CRAP (худший)</div><div class="val" style="color:${crapColor(ru.crap)}">${ru.crap==null?"—":ru.crap}</div><div class="sub">порог 30 · цель 15 · по поддереву</div></div>
+    <div class="mcard"><div class="lbl">Покрытие тестами</div><div class="val">${cov==null?"—":(ru.coverageApprox?"≈":"")+cov+"%"}</div><div class="sub">${t.passed??0} passed / ${t.failed??0} failed${ru.coverageLines?` · ${ru.coverageLines.covered}/${ru.coverageLines.total} строк`:""} · по поддереву</div></div>
+    <div class="mcard"><div class="lbl">Задачи</div><div class="val">${ru.tasks.total}</div><div class="sub">${ru.tasks.inProgress} в работе · ${ru.tasks.done} готово · ${ru.tasks.blocked} заблок.</div></div>
+  </div>
+  <div class="doc">${esc(n.doc||"Нет описания.")}</div>`;
+  // children scheme
+  if((n.children||[]).length){
+    h+=`<section><h3>Внутренняя схема <span class="tag">UML Component Diagram · клик → углубиться</span></h3><div class="graph">${childrenSVG(n)}</div>${umlComponentLegend()}</section>`;
+  }
+  h+=diagramsSection(n);
+  // task graph (focal + blocking context)
+  const ts=tasksFor(n);
+  const graphNodes=taskGraphData(n);
+  h+=`<section><h3>Граф задач <span class="tag">UML Activity Diagram · ${ts.length} шт · клик → документация + стадия loop</span></h3>`;
+  h+=`<div class="legend"><span style="color:#7dd3fc">UML Activity:</span><span><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#e6ebf5"/></svg>initial node</span><span><svg width="18" height="16"><circle cx="9" cy="8" r="7" fill="none" stroke="#e6ebf5" stroke-width="1.5"/><circle cx="9" cy="8" r="3.5" fill="#e6ebf5"/></svg>final node</span><span><svg width="28" height="16"><rect x="2" y="3" width="24" height="10" rx="5" fill="#141b2e" stroke="#94a3b8"/></svg>activity (задача)</span><span><svg width="32" height="10"><line x1="0" y1="5" x2="25" y2="5" stroke="#94a3b8" stroke-width="1.5"/><path d="M25,1 L31,5 L25,9 Z" fill="#94a3b8"/></svg>control flow</span></div>`;
+  h+=`<div class="legend"><span style="color:#7dd3fc">Стереотип «status»:</span>${Object.entries(TSTATUS).map(([k,v])=>`<span><span class="sdot" style="background:${v}"></span>${TLABEL[k]}</span>`).join("")}</div>`;
+  h+=`<div class="legend"><span style="color:#ef4444">→ красная control flow: активная блокировка (блокирующая → заблокированная)</span><span style="color:#93a0bd">→ серая: блокировка снята</span><span style="color:#93a0bd">пунктир ↗: activity другого компонента</span></div>`;
+  h+=graphNodes.length?`<div class="graph">${taskSVG(graphNodes)}</div>`:`<div class="empty">Нет задач для этого компонента.</div>`;
+  h+=`</section>`;
+  // coverage + crap detail
+  h+=`<section><h3>Тесты и CRAP ${(n.children||[]).length?'<span class="tag">сводка по поддереву</span>':''}</h3>`;
+  if(cov!=null||t.total){h+=`<div class="kv"><b>Покрытие строк</b> <span class="covbar"><i style="width:${cov??0}%"></i></span> ${ru.coverageApprox?"≈":""}${cov??0}%${ru.coverageLines?` <span style="color:var(--muted)">(Σ ${ru.coverageLines.covered} покрыто / ${ru.coverageLines.total} строк по поддереву)</span>`:""}</div>
+    <div class="kv"><b>Тесты</b> ${t.passed??0} passed · ${t.failed??0} failed · ${t.total??0} total ${t.failed?`<span style="color:#f87171">✗ есть падения</span>`:`<span style="color:#4ade80">✓</span>`}</div>`}
+  else{h+=`<div class="empty">Тесты ещё не запускались (Phase 2 не начат).</div>`}
+  const cf=subtree(n).flatMap(x=>(x.crapFunctions||[]).map(f=>({...f,comp:x.name}))).sort((a,b)=>(b.crap||0)-(a.crap||0)).slice(0,15);
+  if(cf.length){
+    h+=`<table><tr><th>Функция</th><th>Компонент</th><th>CC</th><th>Cov%</th><th>CRAP</th></tr>${cf.map(f=>`<tr><td>${esc(f.function||f.name)}</td><td>${esc(f.comp||"")}</td><td>${f.cc??"—"}</td><td>${f.coverage??"—"}</td><td style="color:${crapColor(f.crap)}">${f.crap}</td></tr>`).join("")}</table>`;
+  }
+  h+=`</section>`;
+  // Агенты компонента: активные (задача в работе + владелец) отдельно от завершивших.
+  const ids=descIds(n);
+  const ag=Object.entries(S.agents||{}).filter(([a,v])=>{const st=agentState(a,v);return st.active&&ids.includes(st.task.component)});
+  const doneAg=Object.entries(S.agents||{}).filter(([a,v])=>{const st=agentState(a,v);return st.done&&ids.includes(st.task.component)});
+  if(ag.length){h+=`<section><h3>Агенты в работе <span class="tag">клик → страница задачи</span></h3><div class="agents">${ag.map(([a,v])=>{const st=agentState(a,v);const tk=st.task;const tc=st.stale?"#f59e0b":TSTATUS[tk.status];const mins=Math.round((Date.now()-Date.parse(v.lastSeen))/60000);const warn=st.stale?` <span style="color:#f59e0b" title="нет связи ${mins} мин">⚠</span>`:"";return `<span class="agent agent-link" data-task="${esc(v.task)}" title="${esc(tk.title)}${st.stale?` · нет связи ${mins} мин`:""}"><span class="sdot" style="background:${tc}"></span><b>${esc(a)}</b> → ${esc(v.task)}${warn}</span>`}).join("")}</div></section>`}
+  if(doneAg.length){h+=`<section><h3>Завершили задачи <span class="tag">клик → страница задачи</span></h3><div class="agents">${doneAg.map(([a,v])=>{const tk=S.tasks[v.task];return `<span class="agent agent-link" data-task="${esc(v.task)}" title="${esc(tk.title)}"><span class="sdot" style="background:#22c55e"></span><b>${esc(a)}</b> → ${esc(v.task)} <span style="color:#22c55e">✓</span></span>`}).join("")}</div></section>`}
+  const dmAg=dmtoolsFor(n);
+  if(dmAg.length){h+=`<section><h3>DMTools агенты <span class="tag">CliAgent · оркестратор (ADR-013) · клик → задача</span></h3><div class="agents">${dmAg.map(a=>{const t=S.tasks[a.task];const c=DMSTATUS[a.status]||"#64748b";const when=a.finished||a.started;const mins=when?Math.round((Date.now()-Date.parse(when))/60000):null;return `<span class="agent agent-link" data-task="${esc(a.task)}" style="border-color:${c}66" title="${esc(t?t.title:a.task)} · ${DMLABEL[a.status]||a.status}${mins!=null?` · ${mins} мин назад`:""}"><span class="sdot" style="background:${c}"></span><b>${esc(a.name)}</b> → ${esc(a.task)} <span style="color:${c};font-weight:600">DMTools</span> <span style="color:var(--muted)">${DMLABEL[a.status]||a.status}</span></span>`}).join("")}</div></section>`}
+  $("main").innerHTML=h;
+  const bb=$("backBtn");if(bb)bb.onclick=()=>{sel=p[p.length-2].id;render();window.scrollTo(0,0)};
+  $("main").querySelectorAll(".crumb a").forEach(a=>a.onclick=()=>{sel=a.dataset.id;render()});
+  $("main").querySelectorAll(".gnode[data-id]").forEach(g=>g.onclick=()=>{sel=g.dataset.id;render()});
+  $("main").querySelectorAll(".gnode[data-task]").forEach(g=>g.onclick=()=>openTask(g.dataset.task));
+  $("main").querySelectorAll(".agent-link[data-task]").forEach(el=>el.onclick=()=>{if(el.dataset.task)openTask(el.dataset.task)});
+  $("main").querySelectorAll("[data-c4view]").forEach(el=>el.onclick=()=>{ c4View=el.dataset.c4view; render(); });
+}
+function tasksFor(n){const ids=descIds(n);return Object.values(S.tasks||{}).filter(t=>ids.includes(t.component))}
+function taskGraphData(n){
+  const focal=tasksFor(n);const fids=new Set(focal.map(t=>t.id));const all=S.tasks||{};const nodes={};
+  focal.forEach(t=>nodes[t.id]={...t,focal:true});
+  focal.forEach(t=>(t.blockedBy||[]).forEach(d=>{if(all[d]&&!nodes[d])nodes[d]={...all[d],focal:false}}));
+  Object.values(all).forEach(t=>{if(!nodes[t.id]&&(t.blockedBy||[]).some(d=>fids.has(d)))nodes[t.id]={...t,focal:false}});
+  return Object.values(nodes);
+}
+// === UML-нотация ===
+// UML component icon: два прямоугольника на левой грани компонента.
+function umlCompIcon(x,y,color){
+  return `<rect x="${x-5}" y="${y+14}" width="10" height="7" fill="#141b2e" stroke="${color}" stroke-width="1"/>`+
+         `<rect x="${x-5}" y="${y+28}" width="10" height="7" fill="#141b2e" stroke="${color}" stroke-width="1"/>`;
+}
+// UML dependency: пунктир + открытая стрелка; control flow: сплошная + заполненная.
+function umlDefs(){
+  return `<defs>`+
+    `<marker id="umlDep" markerWidth="12" markerHeight="12" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9" fill="none" stroke="#94a3b8" stroke-width="1.4"/></marker>`+
+    `<marker id="umlFlow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8"/></marker>`+
+    `<marker id="umlFlowR" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ef4444"/></marker>`+
+    `</defs>`;
+}
+// UML Package Diagram: пакет (папка с вкладкой) содержит компоненты.
+function childrenSVG(n){
+  const kids=n.children||[];const W=224,gap=30;const cols=Math.min(kids.length,3)||1;
+  const nameChars=26,nameLH=15;
+  const kidLines=kids.map(c=>wrapText(c.name,nameChars));
+  const maxName=Math.max(1,...kidLines.map(l=>l.length));
+  const H=40+maxName*nameLH+46;
+  const rows=Math.ceil(kids.length/cols)||1;
+  const padX=28,padTop=64,padBot=26;
+  const innerW=cols*(W+gap)-gap;
+  const width=Math.max(660,innerW+padX*2+20);
+  const height=padTop+rows*(H+gap)-gap+padBot;
+  const stereo=n.kind==="system"?"system":n.kind==="container"?"container":"component";
+  const bc=STATUS[n.status]||"#64748b";
+  let s=`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`+umlDefs();
+  const tabW=210,tabH=20;
+  s+=`<path d="M${padX},${padTop} L${padX},${padTop-tabH} L${padX+tabW-16},${padTop-tabH} L${padX+tabW},${padTop} Z" fill="#1c2540" stroke="${bc}" stroke-width="1.5"/>`;
+  s+=`<rect x="${padX}" y="${padTop}" width="${width-padX*2}" height="${height-padTop-padBot+12}" fill="#0f1526" fill-opacity="0.4" stroke="${bc}" stroke-width="1.5"/>`;
+  s+=`<text x="${padX+10}" y="${padTop-6}" fill="#7dd3fc" font-size="11" font-style="italic">«${stereo}»</text>`;
+  s+=`<text x="${padX+tabW+12}" y="${padTop-6}" fill="#e6ebf5" font-size="13" font-weight="600">${esc(n.name)}</text>`;
+  if(!kids.length){s+=`<text x="${padX+20}" y="${padTop+40}" fill="#93a0bd" font-size="11" font-style="italic">нет подкомпонентов</text>`;}
+  kids.forEach((c,i)=>{const col=i%cols,row=Math.floor(i/cols);const x=padX+22+col*(W+gap),y=padTop+26+row*(H+gap);
+    const cc=STATUS[c.status]||"#64748b";const nl=kidLines[i];const cru=rollup(c);
+    s+=`<g class="gnode" data-id="${esc(c.id)}" style="cursor:pointer">`;
+    s+=`<rect x="${x}" y="${y}" width="${W}" height="${H}" fill="#141b2e" stroke="${cc}" stroke-width="1.5"/>`;
+    s+=umlCompIcon(x,y,cc);
+    s+=`<text x="${x+16}" y="${y+18}" fill="#93a0bd" font-size="9" font-style="italic">«component»</text>`;
+    s+=svgLines(x+16,y+37,nl,nameLH,`fill="#e6ebf5" font-size="12" font-weight="600"`);
+    const ty=y+37+nl.length*nameLH+2;
+    s+=`<text x="${x+16}" y="${ty}" fill="#93a0bd" font-size="9">{readiness = ${cru.readiness}%}</text>`;
+    s+=`<text x="${x+16}" y="${ty+16}" font-size="9"><tspan fill="${crapColor(cru.crap)}">{CRAP = ${cru.crap==null?"n/a":cru.crap}}</tspan><tspan fill="#93a0bd"> · cov ${cru.coverage==null?"n/a":(cru.coverageApprox?"≈":"")+cru.coverage+"%"}</tspan></text>`;
+    s+=`<text x="${x+16}" y="${ty+30}" fill="${cc}" font-size="9" font-style="italic">${esc(c.status)}</text>`;
+    s+=`</g>`;
+  });
+  return s+"</svg>";
+}
+let c4View=null;
+const EDGE_CATS=[
+  {re:/implement|trait|registry|PhysicsModule/i,color:"#22c55e",dash:"",name:"структура / реализация"},
+  {re:/solve|assemble|flux|newton|residual|jacobian|F\/J|material balance/i,color:"#3b82f6",dash:"",name:"вычисление"},
+  {re:/select|chop|check|timestep|dt\b|iteration/i,color:"#f59e0b",dash:"",name:"управление шагом"},
+  {re:/offload|distribut|coordinat|exchange|halo|launch|kernel|boundaries/i,color:"#06b6d4",dash:"2,4",name:"параллелизм / GPU"},
+  {re:/call|use|gRPC|REST|MCP|run|control|orchestrat|imports|exports/i,color:"#a855f7",dash:"",name:"API / вызов"},
+  {re:/read|write|dispatch|parse|deck|keyword|results/i,color:"#ec4899",dash:"7,4",name:"ввод / вывод"},
+];
+function edgeStyle(e){const t=String(e.label||"");for(const c of EDGE_CATS){if(c.re.test(t))return c}return {color:"#94a3b8",dash:"",name:"связь"}}
+function wrapText(text,maxChars){const words=String(text).split(/\s+/);const lines=[];let cur="";for(let w of words){while(w.length>maxChars){if(cur){lines.push(cur);cur=""}lines.push(w.slice(0,maxChars));w=w.slice(maxChars);}if(cur&&(cur+" "+w).length>maxChars){lines.push(cur);cur=w}else cur=cur?cur+" "+w:w}if(cur)lines.push(cur);return lines.length?lines:[""]}
+// многострочный SVG-текст (перенос по словам, без обрезки посередине слова)
+function svgLines(x,y,lines,lh,attrs){return lines.map((ln,i)=>`<text x="${x}" y="${y+i*lh}" ${attrs}>${esc(ln)}</text>`).join("")}
+function c4SVG(view){
+  const all=(view.nodes||[]).filter(n=>n.modelRef);
+  const nodes=all.filter(n=>n.id!==view.viewOf);
+  const use=nodes.length?nodes:all;
+  const edges=(view.edges||[]).filter(e=>use.some(n=>n.id===e.source)&&use.some(n=>n.id===e.target));
+  const titleLines={},techLines={};
+  use.forEach(n=>{titleLines[n.id]=wrapText(n.title||n.id,24);techLines[n.id]=wrapText(n.technology||"",30);});
+  const maxTitle=Math.max(1,...use.map(n=>titleLines[n.id].length));
+  const maxTech=Math.max(1,...use.map(n=>techLines[n.id].length));
+  const layer={};
+  function lay(id,seen){if(layer[id]!=null)return layer[id];if(seen.has(id))return 0;seen.add(id);const ins=edges.filter(e=>e.target===id).map(e=>e.source);const l=ins.length?Math.max(...ins.map(s=>lay(s,seen)))+1:0;layer[id]=l;return l}
+  use.forEach(n=>lay(n.id,new Set()));
+  const layers={};use.forEach(n=>{(layers[layer[n.id]]||=[]).push(n)});
+  const W=210,gx=180,gy=46,H=56+maxTitle*15+maxTech*12;
+  const maxL=Math.max(0,...Object.keys(layers).map(Number));
+  const maxRows=Math.max(1,...Object.values(layers).map(a=>a.length));
+  const width=(maxL+1)*(W+gx)+60,height=maxRows*(H+gy)+60;
+  const pos={};Object.entries(layers).forEach(([l,arr])=>arr.forEach((n,i)=>{pos[n.id]={x:30+Number(l)*(W+gx),y:30+i*(H+gy)}}));
+  const usedColors=[...new Set(edges.map(e=>edgeStyle(e).color))];
+  let s=`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+  s+=`<defs>`+usedColors.map((c,i)=>`<marker id="c4a${i}" markerWidth="12" markerHeight="12" refX="9" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9" fill="none" stroke="${c}" stroke-width="1.4"/></marker>`).join("")+`</defs>`;
+  const cIdx=c=>usedColors.indexOf(c);
+  edges.forEach((e,ei)=>{const a=pos[e.source],b=pos[e.target];if(!a||!b)return;const st=edgeStyle(e);
+    const x1=a.x+W,y1=a.y+H/2,x2=b.x-4,y2=b.y+H/2,mx=(x1+x2)/2,my=(y1+y2)/2;
+    s+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${st.color}" stroke-width="1.6" stroke-dasharray="${st.dash||'6,4'}" marker-end="url(#c4a${cIdx(st.color)})" opacity="0.9"/>`;
+    if(e.label){const lines=wrapText(e.label,18);const lh=12;const bw=Math.max(...lines.map(l=>l.length))*6.2+14;const bh=lines.length*lh+8;
+      const ly=my-bh/2;
+      s+=`<rect x="${mx-bw/2}" y="${ly}" width="${bw}" height="${bh}" rx="6" fill="#0b1020" stroke="${st.color}" stroke-opacity="0.5" stroke-width="1" opacity="0.95"/>`;
+      lines.forEach((ln,li)=>{s+=`<text x="${mx}" y="${ly+13+li*lh}" fill="#e6ebf5" font-size="9.5" text-anchor="middle">${esc(ln)}</text>`});}
+  });
+  use.forEach(n=>{const p=pos[n.id];const st=(n.metadata&&n.metadata.status)||"planned";const c=STATUS[st]||"#64748b";
+    const tl=titleLines[n.id],tecl=techLines[n.id];
+    s+=`<g><rect x="${p.x}" y="${p.y}" width="${W}" height="${H}" fill="#141b2e" stroke="${c}" stroke-width="1.5"/>`;
+    s+=umlCompIcon(p.x,p.y,c);
+    s+=`<text x="${p.x+16}" y="${p.y+18}" fill="#93a0bd" font-size="9" font-style="italic">«${esc(n.notation||"component")}»</text>`;
+    s+=svgLines(p.x+16,p.y+36,tl,15,`fill="#e6ebf5" font-size="12" font-weight="600"`);
+    const ty=p.y+36+tl.length*15+2;
+    s+=svgLines(p.x+16,ty,tecl,12,`fill="#7dd3fc" font-size="9"`);
+    s+=`<text x="${p.x+16}" y="${ty+tecl.length*12+2}" fill="${c}" font-size="9" font-style="italic">${esc(st)}</text></g>`;});
+  return s+"</svg>";
+}
+function umlComponentLegend(){return `<div class="legend">`+
+  `<span><svg width="24" height="18"><rect x="7" y="3" width="15" height="12" fill="#141b2e" stroke="#94a3b8"/><rect x="4" y="5" width="6" height="3" fill="#141b2e" stroke="#94a3b8"/><rect x="4" y="10" width="6" height="3" fill="#141b2e" stroke="#94a3b8"/></svg>компонент (UML icon)</span>`+
+  `<span><svg width="24" height="18"><path d="M3,15 L3,5 L15,5 L19,9 L19,15 Z" fill="none" stroke="#94a3b8"/></svg>пакет (system/container)</span>`+
+  `<span><svg width="32" height="10"><line x1="0" y1="5" x2="25" y2="5" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="5,3"/><path d="M25,1 L31,5 L25,9" fill="none" stroke="#94a3b8" stroke-width="1.4"/></svg>dependency (зависимость)</span>`+
+  `<span>«стереотип» — тип элемента</span>`+
+  `<span>{…} — tagged values (readiness/CRAP)</span>`+
+  `</div>`}
+function c4Legend(){return `<div class="legend" style="margin-top:10px"><span style="color:#7dd3fc">UML dependency (пунктир + открытая стрелка); цвет = семантика связи:</span>${EDGE_CATS.map(c=>`<span><svg width="32" height="10"><line x1="0" y1="5" x2="25" y2="5" stroke="${c.color}" stroke-width="1.6" stroke-dasharray="${c.dash||'6,4'}"/><path d="M25,1 L31,5 L25,9" fill="none" stroke="${c.color}" stroke-width="1.4"/></svg>${c.name}</span>`).join("")}</div>`+umlComponentLegend()}
+function diagramsSection(n){
+  if(!DIAG)return "";
+  if(!DIAG.available)return `<section><h3>UML-диаграммы компонентов (C4)</h3><div class="empty">${esc(DIAG.message||"C4-документация не найдена. Если в проекте появится C4 (LikeC4), здесь появятся UML-диаграммы компонентов.")}</div></section>`;
+  const views=DIAG.views||{};const vids=Object.keys(views).filter(v=>v!=="index");
+  if(!vids.length)return `<section><h3>UML-диаграммы (C4)</h3><div class="empty">Нет представлений C4.</div></section>`;
+  const mapped=(DIAG.mapping&&DIAG.mapping[n.id])||[];
+  if(!c4View||!views[c4View])c4View=mapped.find(v=>views[v])||vids[0];
+  const tabs=vids.map(v=>`<span class="step ${v===c4View?'active':''}" data-c4view="${esc(v)}" style="cursor:pointer">${esc(v)}</span>`).join("");
+  const view=views[c4View];
+  const desc=view.description?(typeof view.description==='object'?view.description.txt:view.description):"";
+  let h=`<section><h3>UML Component Diagram (C4) <span class="tag">LikeC4 · рендер из модели · ${esc(view.title||c4View)}</span></h3>`;
+  h+=`<div class="stepper">${tabs}</div>`;
+  h+=`<div class="graph">${c4SVG(view)}</div>`;
+  h+=c4Legend();
+  if(desc)h+=`<div class="doc">${esc(desc)}</div>`;
+  h+=`</section>`;
+  return h;
+}
+// UML Activity Diagram: initial-узел, activities (rounded + стереотип), control flow, final-узел.
+function taskSVG(nodes){
+  const byId={};nodes.forEach(t=>byId[t.id]=t);
+  const titleLines={};nodes.forEach(t=>{titleLines[t.id]=wrapText(t.title||"",28);});
+  const maxTitle=Math.max(1,...nodes.map(t=>titleLines[t.id].length));
+  const layer={};function lay(t,seen){if(layer[t.id]!=null)return layer[t.id];if(seen.has(t.id))return 0;seen.add(t.id);const deps=(t.blockedBy||[]).filter(d=>byId[d]);const l=deps.length?Math.max(...deps.map(d=>lay(byId[d],seen)))+1:0;layer[t.id]=l;return l}
+  nodes.forEach(t=>lay(t,new Set()));
+  const layers={};nodes.forEach(t=>{(layers[layer[t.id]]||=[]).push(t)});
+  const W=232,gx=96,gy=30,H=50+maxTitle*14+20;const maxL=Math.max(0,...Object.keys(layers).map(Number));
+  const maxRows=Math.max(1,...Object.values(layers).map(a=>a.length));
+  const initX=30,startX=80,finalGap=70;
+  const width=startX+(maxL+1)*(W+gx)+finalGap+30,height=maxRows*(H+gy)+50;
+  const cy=height/2,fx=width-30;
+  const pos={};Object.entries(layers).forEach(([l,arr])=>arr.forEach((t,i)=>{pos[t.id]={x:startX+Number(l)*(W+gx),y:30+i*(H+gy)}}));
+  let s=`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`+umlDefs();
+  s+=`<circle cx="${initX}" cy="${cy}" r="9" fill="#e6ebf5"/>`;
+  s+=`<circle cx="${fx}" cy="${cy}" r="11" fill="none" stroke="#e6ebf5" stroke-width="2"/><circle cx="${fx}" cy="${cy}" r="6" fill="#e6ebf5"/>`;
+  nodes.forEach(t=>{
+    const deps=(t.blockedBy||[]).filter(d=>byId[d]);const p=pos[t.id];
+    if(!deps.length){
+      s+=`<path d="M${initX+9},${cy} C${initX+45},${cy} ${p.x-45},${p.y+H/2} ${p.x-3},${p.y+H/2}" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#umlFlow)"/>`;
+    }
+    deps.forEach(d=>{
+      const a=pos[d];const active=byId[d].status!=="done";
+      const col=active?"#ef4444":"#94a3b8";const mk=active?"url(#umlFlowR)":"url(#umlFlow)";
+      const x1=a.x+W,y1=a.y+H/2,x2=p.x-3,y2=p.y+H/2;const mx=(x1+x2)/2;
+      s+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${col}" stroke-width="${active?2:1.5}" marker-end="${mk}" ${active?"":'opacity="0.6"'}/>`;
+    });
+    if(t.status==="done"){
+      s+=`<path d="M${p.x+W},${p.y+H/2} C${p.x+W+45},${p.y+H/2} ${fx-45},${cy} ${fx-12},${cy}" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#umlFlow)"/>`;
+    }
+  });
+  nodes.forEach(t=>{const p=pos[t.id];const c=TSTATUS[t.status]||"#64748b";const ext=!t.focal;const tl=titleLines[t.id];
+    s+=`<g class="gnode" data-task="${esc(t.id)}" style="cursor:pointer">`;
+    s+=`<rect x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="16" fill="${ext?"#0f1526":"#141b2e"}" stroke="${c}" stroke-width="1.5" ${ext?'stroke-dasharray="5,3"':""}/>`;
+    s+=`<text x="${p.x+14}" y="${p.y+17}" fill="${c}" font-size="9" font-style="italic">«${esc(t.status)}»${ext?" ↗":""}</text>`;
+    if(t.tests){const tc=(t.tests.failed??0)>0?"#f87171":"#4ade80";s+=`<text x="${p.x+W-12}" y="${p.y+17}" fill="${tc}" font-size="9" text-anchor="end" font-weight="600">${(t.tests.failed??0)>0?"✗":"✓"}${t.tests.passed??0}/${t.tests.total??0}</text>`;}
+    s+=`<text x="${p.x+14}" y="${p.y+34}" fill="#e6ebf5" font-size="11" font-weight="700">${esc(t.id)}</text>`;
+    s+=svgLines(p.x+14,p.y+50,tl,14,`fill="#e6ebf5" font-size="11"`);
+    s+=`<text x="${p.x+14}" y="${p.y+50+tl.length*14+2}" fill="#93a0bd" font-size="9">${LOOPLBL[t.loopStage]||t.loopStage}${t.owner?" · "+esc(t.owner):""}</text>`;
+    s+=`</g>`;
+  });
+  return s+"</svg>";
+}
+function openTask(id){
+  const t=S.tasks[id];if(!t)return;
+  const cn=node(t.component);const cname=cn?cn.name:t.component;
+  const li=LOOP.indexOf(t.loopStage);
+  const steps=LOOP.map((s,i)=>`<span class="step ${i<li?"done":i===li?"active":""}">${LOOPLBL[s]}</span>`).join("");
+  const deps=(t.blockedBy||[]).map(d=>{const dt=S.tasks[d];return `<span class="agent" style="border-color:${dt&&dt.status==="done"?"#22c55e":"#ef4444"}">${esc(d)} ${dt?"("+TLABEL[dt.status]+")":""}</span>`}).join(" ")||"—";
+  $("modal").innerHTML=`<span class="close" id="mclose">✕</span>
+  <h3>${esc(t.id)} — ${esc(t.title)}</h3>
+  <div class="kv"><b>Статус</b> <span style="color:${TSTATUS[t.status]}">${TLABEL[t.status]||t.status}</span></div>
+  <div class="kv"><b>Компонент</b> <a class="comp-link" data-comp="${esc(t.component)}" title="Перейти на страницу компонента ${esc(t.component)}">${esc(cname)} <span class="comp-link-hint">→ страница компонента</span></a></div>
+  <div class="kv"><b>Требование</b> ${esc(t.requirement||"—")}</div>
+  <div class="kv"><b>Владелец</b> ${esc(t.owner||"—")}</div>
+  <div class="kv"><b>Прогресс</b> ${t.progress??0}%</div>
+  <div class="kv"><b>Тесты задачи</b> ${t.tests?`${t.tests.passed??0} passed · <span style="color:${(t.tests.failed??0)>0?'#f87171':'#4ade80'}">${t.tests.failed??0} failed</span> · ${t.tests.total??0} total${t.tests.coverage!=null?` · coverage ${t.tests.coverage}%`:""} ${(t.tests.failed??0)>0?'<span style="color:#f87171">✗ есть падения</span>':'<span style="color:#4ade80">✓</span>'}`:'<span style="color:var(--muted)">нет данных (report_task_tests)</span>'}</div>
+  <div class="kv"><b>Зависит от</b> ${deps}</div>
+  <div style="margin-top:12px;font-size:12px;color:var(--muted)">Стадия loop разработки:</div>
+  <div class="stepper">${steps}</div>
+  <div class="doc">${esc(t.doc||"Нет описания.")}</div>`;
+  $("modalBg").classList.add("show");
+  $("mclose").onclick=()=>$("modalBg").classList.remove("show");
+  const cl=$("modal").querySelector(".comp-link");
+  if(cl)cl.onclick=()=>{$("modalBg").classList.remove("show");sel=cl.dataset.comp;render();window.scrollTo(0,0)};
+}
+$("modalBg").onclick=e=>{if(e.target===$("modalBg"))$("modalBg").classList.remove("show")};
+$("imgModal").onclick=()=>$("imgModal").classList.remove("show");
+$("refreshBtn").onclick=async()=>{const b=$("refreshBtn");b.classList.add("loading");b.textContent="⟳ Обновление…";try{await fetchState()}finally{b.classList.remove("loading");b.textContent="⟳ Обновить";}};
+fetchState().then(connectSSE);
+</script>
+</body>
+</html>
