@@ -1,0 +1,1 @@
+{"name": "dfcp-cli", "version": "0.1.0", "description": "factory CLI — thin interface to the DFCP Core", "type": "module", "license": "MIT", "bin": {"factory": "./src/main.ts"}, "engines": {"node": ">=22.18"}}

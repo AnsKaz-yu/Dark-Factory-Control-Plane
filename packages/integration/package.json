@@ -1,0 +1,1 @@
+{"name": "dfcp-integration", "version": "0.1.0", "description": "Adaptive Integration Layer: discovery, capabilities, fingerprint, drift, reconciliation, adapter updates", "type": "module", "license": "MIT", "engines": {"node": ">=22.18"}}

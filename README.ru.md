@@ -36,16 +36,16 @@ workflow.
 
 ```
 packages/
-  core/        Core Product: доменная модель, события, проекции, API, сервер дашборда
-  adapters/    Встроенные адаптеры (git, opencode, file-task-tracker, jenkins, github, likec4, ...)
+  core/        Core Product: доменная модель, события, проекции, аналитика, API, сервер дашборда
+  adapters/    Встроенные адаптеры (git, opencode, file-task-tracker, jenkins, github, gitlab, likec4, ...)
   integration/ Discovery, capability manifest, fingerprint, drift, reconciliation, обновления
-  cli/         factory CLI (install/setup/discover/sync/doctor/reconcile/...)
-  plugin/      OpenCode-плагин (тонкий интеграционный слой)
-agents/        Определения агентов OpenCode (setup / operations / diagnostics / maintenance)
-skills/        Навыки OpenCode
-docs/          Требования, архитектура, спецификации, руководства
-tests/         Unit / contract / integration / e2e + synthetic harness fixtures
+  cli/         factory CLI (setup/discover/sync/doctor/reconcile/adapter:*/...)
+  plugin/      OpenCode-плагин (тонкий) + kit/ (агенты и навыки для целевых проектов)
+  dashboard/   Capability-driven SPA (сборка без зависимостей через Node type stripper)
+docs/          Требования, архитектура, спецификации, руководства, отчёт демонстрации
+tests/         Unit / integration / e2e + synthetic harness fixtures
 research/      Read-only снапшоты legacy-плагина + отчёт о reverse engineering
+scripts/       Генерация спецификаций из живого кода
 ```
 
 ## Быстрый старт (разработка)

@@ -1,0 +1,1 @@
+{"name": "dfcp-adapters", "version": "0.1.0", "description": "Built-in harness adapters (git, opencode, file trackers, CI providers, LikeC4, queues, event feeds)", "type": "module", "license": "MIT", "engines": {"node": ">=22.18"}}

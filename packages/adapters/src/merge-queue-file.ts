@@ -67,21 +67,29 @@ export const mergeQueueFileAdapter: Adapter = {
     if (error) throw new Error(`merge queue unreadable: ${error}`)
     const f = cfg.fields ?? {}
     const stateMap = { ...DEFAULT_STATE_MAP, ...cfg.stateMap }
+    const pick = (configured: string | undefined, candidates: string[], fallback: string): string =>
+      configured ?? candidates.find(k => items[0]?.[k] !== undefined) ?? fallback
+    const branchField = pick(f.branch, ["branch", "ref", "branchName"], "branch")
+    const stateField = pick(f.state, ["state", "status", "phase"], "state")
+    const taskField = pick(f.task, ["task", "ticket", "taskId"], "task")
+    const agentField = pick(f.agent, ["agent", "owner"], "agent")
+    const reasonField = pick(f.reason, ["reason", "error"], "reason")
+    const enqueuedField = pick(f.enqueuedAt, ["enqueuedAt", "added", "queuedAt"], "enqueuedAt")
     const entries = items.map((it, i) => {
-      const originalState = String(it[f.state ?? "state"] ?? it["status"] ?? "waiting")
+      const originalState = String(it[stateField] ?? "waiting")
       const state = stateMap[originalState.toLowerCase()] ?? "waiting"
       const checks = it[f.checks ?? "checks"]
       return {
-        id: String(it.id ?? it[f.branch ?? "branch"] ?? `entry-${i + 1}`),
+        id: String(it.id ?? it[branchField] ?? `entry-${i + 1}`),
         position: i + 1,
-        branch: String(it[f.branch ?? "branch"] ?? ""),
-        taskId: it[f.task ?? "task"] ? String(it[f.task ?? "task"]) : undefined,
-        agent: it[f.agent ?? "agent"] ? String(it[f.agent ?? "agent"]) : undefined,
+        branch: String(it[branchField] ?? ""),
+        taskId: it[taskField] ? String(it[taskField]) : undefined,
+        agent: it[agentField] ? String(it[agentField]) : undefined,
         state,
         checks: Array.isArray(checks) ? checks as { name: string; status: string }[] : [],
-        enqueuedAt: String(it[f.enqueuedAt ?? "enqueuedAt"] ?? it["added"] ?? new Date().toISOString()),
+        enqueuedAt: String(it[enqueuedField] ?? new Date().toISOString()),
         updatedAt: new Date().toISOString(),
-        reason: it[f.reason ?? "reason"] ? String(it[f.reason ?? "reason"]) : undefined,
+        reason: it[reasonField] ? String(it[reasonField]) : undefined,
         mapping: { originalState },
       }
     })

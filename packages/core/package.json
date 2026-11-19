@@ -1,0 +1,1 @@
+{"name": "dfcp-core", "version": "0.1.0", "description": "Core Product: event-sourced domain, projections, analytics, REST API, dashboard server", "type": "module", "license": "MIT", "engines": {"node": ">=22.18"}}

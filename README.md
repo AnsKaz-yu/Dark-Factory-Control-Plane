@@ -36,16 +36,16 @@ project's actual engineering harness** instead of forcing projects into a predef
 
 ```
 packages/
-  core/        Core Product: domain, events, projections, API, dashboard server
-  adapters/    Built-in adapters (git, opencode, file-task-tracker, jenkins, github, likec4, ...)
+  core/        Core Product: domain, events, projections, analytics, API, dashboard server
+  adapters/    Built-in adapters (git, opencode, file-task-tracker, jenkins, github, gitlab, likec4, ...)
   integration/ Discovery, capability manifest, fingerprint, drift, reconciliation, updates
-  cli/         factory CLI (install/setup/discover/sync/doctor/reconcile/...)
-  plugin/      OpenCode plugin (thin integration layer)
-agents/        OpenCode agent definitions (setup / operations / diagnostics / maintenance)
-skills/        OpenCode skills
-docs/          Requirements, architecture, specifications, guides
-tests/         Unit / contract / integration / e2e + synthetic harness fixtures
+  cli/         factory CLI (setup/discover/sync/doctor/reconcile/adapter:*/...)
+  plugin/      OpenCode plugin (thin) + kit/ (agents & skills installed into target projects)
+  dashboard/   Capability-driven SPA (zero-dependency build via Node type stripper)
+docs/          Requirements, architecture, specifications, guides, demo report
+tests/         Unit / integration / e2e + synthetic harness fixtures
 research/      Read-only legacy plugin snapshots + reverse engineering report
+scripts/       Spec generation from live code
 ```
 
 ## Quick start (development)
