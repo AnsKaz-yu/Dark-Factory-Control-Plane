@@ -11,6 +11,13 @@ interface LikeC4Model {
   views?: Record<string, { id?: string; title?: string; nodes?: { id: string }[]; edges?: { source: string; target: string; label?: string }[] }>
 }
 
+function unwrapModel(doc: unknown): LikeC4Model | null {
+  let d = doc as Record<string, unknown> | null
+  if (Array.isArray(d)) d = d[0] as Record<string, unknown>
+  if (d && Array.isArray((d as Record<string, unknown>).projects)) d = ((d as Record<string, unknown>).projects as unknown[])[0] as Record<string, unknown>
+  return (d as LikeC4Model) ?? null
+}
+
 function findModel(ctx: AdapterContext): string | null {
   const configured = ctx.config.modelPath as string | undefined
   const candidates = configured ? [configured] : [
@@ -48,8 +55,8 @@ export const likec4Adapter: Adapter = {
     if (!path) return { ok: false, confidence: "inferred", detail: "no LikeC4 model export found", capabilities: { architecture_map: { status: "unavailable", limitations: ["no model.json export found"] } } }
     const raw = ctx.readText(path)
     try {
-      let doc = JSON.parse(raw!)
-      if (Array.isArray(doc)) doc = doc[0]
+      const doc = unwrapModel(JSON.parse(raw!))
+      if (!doc) return { ok: false, confidence: "inferred", detail: "model export empty", capabilities: { architecture_map: { status: "degraded", limitations: ["model export empty"] } } }
       const { elements, views } = normalize(doc)
       if (!elements.length) return { ok: false, confidence: "inferred", detail: "model has no elements", capabilities: { architecture_map: { status: "degraded", limitations: ["model export empty"] } } }
       return {
@@ -64,8 +71,8 @@ export const likec4Adapter: Adapter = {
     const path = findModel(ctx)
     if (!path) return { events: [] }
     try {
-      let doc = JSON.parse(ctx.readText(path)!)
-      if (Array.isArray(doc)) doc = doc[0]
+      const doc = unwrapModel(JSON.parse(ctx.readText(path)!))
+      if (!doc) return { events: [], notes: ["likec4 model export empty"] }
       const { elements, relations, views } = normalize(doc)
       const events = [
         {

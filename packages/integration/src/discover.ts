@@ -20,8 +20,11 @@ function walk(root: string, maxDepth = MAX_DEPTH): ScanFile[] {
     try { entries = readdirSync(dir) } catch { return }
     for (const name of entries) {
       if (out.length > MAX_FILES) return
-      if (name.startsWith(".") && name !== ".opencode" && name !== ".github" && name !== ".gitlab" && name !== ".dark-factory" && name !== ".git") continue
+      // never descend into git internals or product/plugin dirs (budget + determinism)
+      if (name === ".git" || name === ".dark-factory") continue
+      if (name.startsWith(".") && name !== ".opencode" && name !== ".github" && name !== ".gitlab") continue
       const abs = join(dir, name)
+      if (abs.replace(/\\/g, "/").includes(".opencode/plugins")) continue
       let st
       try { st = statSync(abs) } catch { continue }
       if (st.isDirectory()) {
@@ -47,19 +50,26 @@ function stripBom(t: string): string { return t.charCodeAt(0) === 0xfeff ? t.sli
 
 function tryJson(t: string): unknown | null { try { return JSON.parse(stripBom(t)) } catch { return null } }
 
-/** Detect task-like structure in a JSON document. */
-function looksLikeTasks(doc: unknown): { count: number; statuses: string[]; fields: string[] } | null {
-  let arr: unknown[] | null = null
-  if (Array.isArray(doc)) arr = doc
-  else if (doc && typeof doc === "object") {
-    for (const v of Object.values(doc as Record<string, unknown>)) {
-      if (Array.isArray(v) && v.length && typeof v[0] === "object" && v[0] !== null) { arr = v; break }
-    }
-    if (!arr) {
-      const vals = Object.values(doc as Record<string, unknown>)
-      if (vals.length >= 2 && vals.every(v => v && typeof v === "object")) arr = vals
-    }
+/** Detect task-like structure in a JSON document (arrays, container keys, object-of-objects). */
+function extractTaskArray(doc: unknown): unknown[] | null {
+  if (Array.isArray(doc)) return doc
+  if (!doc || typeof doc !== "object") return null
+  const obj = doc as Record<string, unknown>
+  for (const k of ["tasks", "items", "backlog", "issues", "entries"]) {
+    const v = obj[k]
+    if (Array.isArray(v)) return v
+    if (v && typeof v === "object") return Object.entries(v as Record<string, unknown>).map(([id, x]) => ({ id, ...(x as object) }))
   }
+  const vals = Object.values(obj)
+  if (vals.length >= 2 && vals.every(v => v && typeof v === "object" && !Array.isArray(v))) {
+    return Object.entries(obj).map(([id, x]) => ({ id, ...(x as object) }))
+  }
+  for (const v of vals) if (Array.isArray(v) && v.length && typeof v[0] === "object" && v[0] !== null) return v
+  return null
+}
+
+function looksLikeTasks(doc: unknown): { count: number; statuses: string[]; fields: string[] } | null {
+  const arr = extractTaskArray(doc)
   if (!arr || !arr.length) return null
   const sample = arr[0] as Record<string, unknown>
   const keys = Object.keys(sample).map(k => k.toLowerCase())
@@ -170,14 +180,21 @@ export function discover(projectId: string, root: string): DiscoveryReport {
   if (commandFiles.length) ev("commands", commandFiles[0].rel, "medium", `${commandFiles.length} command definitions`)
 
   // ---- 5. Task trackers (structure + content based) ----
+  // Explicit well-known candidates are checked directly (independent of walk budget),
+  // so discovery stays deterministic on large repositories.
+  const explicit = ["project-state.json", "tasks.json", "backlog.json", "task-state.json", "docs/roadmap.md", "docs/tasks.md", "TODO.md", "ROADMAP.md"]
+    .filter(p => existsSync(join(root, p)))
+    .map(p => ({ rel: p, abs: join(root, p), size: 0 }))
   const trackerCandidates = [
+    ...explicit,
     ...find(/(^|\/)(tasks?|backlog|task-state|project-state|todo|roadmap)([-_.].*)?\.(json|jsonl|md)$/i),
     ...find(/(^|\/)\.taskmaster\/.*\.json$/i),
     ...find(/(^|\/)docs\/.*tasks?\.md$/i),
   ]
   let bestTracker: { f: ScanFile; info: { count: number; statuses: string[]; fields: string[] }; format: string } | null = null
   for (const f of trackerCandidates.slice(0, 30)) {
-    const text = readSafe(f.abs)
+    // task stores can be large (hundreds of tasks); do not truncate before parsing
+    const text = readSafe(f.abs, 4_000_000)
     if (!text) continue
     if (f.rel.endsWith(".md")) {
       const items = (text.match(/^\s*[-*]\s+\[[ xX]\]/gm) ?? []).length
@@ -314,7 +331,9 @@ export function discover(projectId: string, root: string): DiscoveryReport {
     detectedTools.add("likec4")
     const mf = modelFiles[0]
     if (mf) {
-      const doc = tryJson(readSafe(mf.abs) ?? "") as Record<string, unknown> | null
+      let doc = tryJson(readSafe(mf.abs) ?? "") as Record<string, unknown> | null
+      if (Array.isArray(doc)) doc = doc[0] as Record<string, unknown>
+      if (doc && Array.isArray(doc.projects)) doc = (doc.projects as Record<string, unknown>[])[0]
       if (doc && (doc.views || doc.elements)) {
         ev("architecture", mf.rel, "high", "LikeC4 model export with views/elements")
         suggested.push({ adapterId: "likec4", reason: `model export ${mf.rel}`, config: { modelPath: mf.rel } })

@@ -264,14 +264,25 @@ export function apply(state: ProjectState, e: EventEnvelope): ProjectState {
       break
     }
     case "agent.heartbeat": {
-      const a = state.agents[p.id as string]
-      if (a) {
-        a.lastHeartbeatAt = e.occurredAt
-        a.lastEventAt = e.occurredAt
-        if (p.taskId !== undefined) a.currentTaskId = (p.taskId as string) || undefined
-        // Heartbeat proves activity, never completion: only upgrade unknown -> working.
-        if (a.status === "unknown") { a.status = "working"; a.statusEvidence = "heartbeat" }
+      let a = state.agents[p.id as string]
+      if (!a) {
+        // A heartbeat proves activity even for a session that started before the
+        // plugin loaded: auto-register instead of dropping the signal.
+        a = state.agents[p.id as string] = {
+          id: p.id as string, projectId: e.projectId, name: p.id as string,
+          kind: e.source.adapterId === "opencode" ? "opencode" : "unknown",
+          status: "working", statusEvidence: "heartbeat",
+          currentTaskId: (p.taskId as string) || undefined,
+          startedAt: e.occurredAt, lastEventAt: e.occurredAt, lastHeartbeatAt: e.occurredAt,
+          errors: [], source: { ...e.source, entityKind: "agent", fetchedAt: e.occurredAt },
+        }
+        break
       }
+      a.lastHeartbeatAt = e.occurredAt
+      a.lastEventAt = e.occurredAt
+      if (p.taskId !== undefined) a.currentTaskId = (p.taskId as string) || undefined
+      // Heartbeat proves activity, never completion: only upgrade unknown -> working.
+      if (a.status === "unknown") { a.status = "working"; a.statusEvidence = "heartbeat" }
       break
     }
     case "agent.error": {
@@ -290,8 +301,17 @@ export function apply(state: ProjectState, e: EventEnvelope): ProjectState {
         model: p.model as string | undefined, startedAt: e.occurredAt, taskIds: [],
       }
       state.sessions[s.id] = s
-      const a = state.agents[s.agentId]
-      if (a) { a.sessionId = s.id; if (s.model) a.model = s.model; a.lastEventAt = e.occurredAt }
+      let a = state.agents[s.agentId]
+      if (!a) {
+        a = state.agents[s.agentId] = {
+          id: s.agentId, projectId: e.projectId, name: s.title ?? s.agentId,
+          kind: e.source.adapterId === "opencode" ? "opencode" : "unknown",
+          status: "working", statusEvidence: "event",
+          sessionId: s.id, model: s.model, startedAt: e.occurredAt, lastEventAt: e.occurredAt,
+          errors: [], source: { ...e.source, entityKind: "agent", fetchedAt: e.occurredAt },
+        }
+      }
+      a.sessionId = s.id; if (s.model) a.model = s.model; a.lastEventAt = e.occurredAt
       break
     }
     case "session.ended": {

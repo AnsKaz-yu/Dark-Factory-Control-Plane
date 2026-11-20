@@ -30,7 +30,7 @@ See [INSTALL.md](INSTALL.md). Quick version:
 | Option | Default | Meaning |
 |---|---|---|
 | `coreUrl` | `http://127.0.0.1:8095` (or `DFCP_URL`) | Core API base URL |
-| `projectId` | slug of project dir name | Override project id |
+| `projectId` | slug of project directory name | Override project id. The core additionally dedups by root path, so plugin and CLI registrations of the same directory always resolve to ONE project. |
 | `autoSetup` | `true` | Run discovery+sync on first connection |
 | `forwardEvents` | `true` | Forward OpenCode events/tool telemetry |
 
@@ -53,3 +53,9 @@ by `factory_setup`, tracked in `.dark-factory/generated/opencode-kit-manifest.js
 ## Requirements
 
 OpenCode with the V2 plugin API (tested against 1.19.5), Node ≥ 22.18 for the Core.
+
+## Updating an installed plugin copy
+
+OpenCode does not guarantee hot-reload of changed `.opencode/plugins` content. After
+refreshing the plugin directory, restart the service (`opencode service restart`) or start
+a new session/server. Until then the previously loaded plugin code keeps running.

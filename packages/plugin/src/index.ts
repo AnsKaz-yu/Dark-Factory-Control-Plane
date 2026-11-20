@@ -18,7 +18,9 @@ export default Plugin.define({
     const options = (ctx.options ?? {}) as { coreUrl?: string; projectId?: string; autoSetup?: boolean; forwardEvents?: boolean }
     const baseUrl = options.coreUrl ?? process.env.DFCP_URL ?? "http://127.0.0.1:8095"
     const root: string = ctx.location?.directory ?? process.cwd()
-    const projectId = options.projectId ? slugify(options.projectId) : slugify(ctx.location?.project?.id ?? basename(root))
+    // Same deterministic id as the CLI (slug of directory name); the core additionally
+    // dedups by root, so plugin and CLI can never create duplicate projects.
+    let projectId = options.projectId ? slugify(options.projectId) : slugify(basename(root))
     const projectName = basename(root)
     const client = new CoreClient({ baseUrl })
     const forwardEvents = options.forwardEvents !== false
@@ -49,12 +51,13 @@ export default Plugin.define({
 
     const connect = async (): Promise<boolean> => {
       if (!(await client.healthy())) return false
-      await client.ensureProject(projectId, projectName, root)
+      const regId = await client.ensureProject(projectId, projectName, root)
+      if (regId) projectId = regId
       await client.post(`/api/projects/${projectId}/plugin/connect`, { pluginVersion: PLUGIN_VERSION })
       if (autoSetup) {
         const caps = await client.get(`/api/projects/${projectId}/capabilities`)
-        const manifest = caps.data as { capabilities?: Record<string, { confidence?: string }> } | null
-        const unassessed = !manifest?.capabilities || Object.values(manifest.capabilities).every(c => c.confidence === "inferred")
+        const manifest = caps.data as { capabilities?: Record<string, { confidence?: string; status?: string }> } | null
+        const unassessed = !manifest?.capabilities || Object.values(manifest.capabilities).every(c => c.confidence === "inferred" || c.status === "unknown")
         if (unassessed) {
           await client.post(`/api/projects/${projectId}/discover`)
           await client.post(`/api/projects/${projectId}/sync`)

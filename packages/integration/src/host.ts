@@ -99,7 +99,7 @@ export class DfcpIntegrationHost implements IntegrationHost {
       }
       if (!seen.has("git") && report.detectedTools.includes("git")) adapters.unshift({ id: "git", config: {} })
       cfg = {
-        projectId: store.id, name: store.state.project?.name ?? store.id, root,
+        projectId: store.id, name: store.state.project?.name ?? store.id, rootName: basename(store.state.project?.root ?? ""),
         createdAt: nowISO(), productVersion: CORE_VERSION, adapters,
         permissions: { allowStructural: true, allowWrite: false, allowMaintenance: true },
         sources: {},
@@ -114,6 +114,27 @@ export class DfcpIntegrationHost implements IntegrationHost {
     }
 
     const bindings = await this.resolveBindings(store, true)
+    // Source refresh: if a configured source probes empty/degraded and discovery now
+    // suggests a better source for the same adapter, switch config and re-probe.
+    // (Re-discover must not keep stale source selections from an earlier install.)
+    const cfgNow = readProjectConfig(root)
+    if (cfgNow) {
+      let changed = false
+      for (const b of bindings) {
+        const caps = Object.values(b.probe?.capabilities ?? {})
+        const emptyOrBad = !b.probe?.ok || caps.some(c => c && ((c.details as Record<string, unknown> | undefined)?.taskCount === 0 || c.completeness === 0 || c.status === "degraded"))
+        if (!emptyOrBad) continue
+        const sug = report.suggestedAdapters.find(s => s.adapterId === b.adapter.manifest.id)
+        if (!sug?.config) continue
+        const entry = cfgNow.adapters.find(a => a.id === b.adapter.manifest.id)
+        if (!entry || JSON.stringify(entry.config) === JSON.stringify(sug.config)) continue
+        entry.config = sug.config as Record<string, unknown>
+        b.config = entry.config
+        try { b.probe = await b.adapter.probe(this.ctxFor(store, b.adapter.manifest.id, b.config)) } catch { /* keep old probe */ }
+        changed = true
+      }
+      if (changed) writeProjectConfig(root, cfgNow)
+    }
     this.registerAdapterManifests(store, bindings)
     const manifest = buildManifest(store.id, bindings, report.capabilityDraft)
     store.setCapabilities(manifest)

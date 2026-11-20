@@ -30,6 +30,17 @@ npm start            # node packages/cli/src/serve.ts --port 8095 --data ~/.dfcp
 
 Verify: `curl http://127.0.0.1:8095/api/health`. Dashboard: `http://127.0.0.1:8095/`.
 
+Notes on entry points & ports:
+- `factory start` / `node packages/cli/src/serve.ts` run the FULL product (core + integration
+  layer). `node packages/core/src/main.ts` runs the core WITHOUT the integration layer
+  (discovery/sync/reconcile endpoints return 501) — use the CLI entry for normal operation.
+- If port 8095 is already in use, a core is probably already running: **reuse it**
+  (`factory status`, `factory setup` auto-detect a healthy core). `factory start` exits with
+  a remediation hint; pass `--port <free-port>` to run a second instance (then point the
+  plugin/CLI at it via `coreUrl` / `--url` / `DFCP_URL`).
+- `factory stop` stops only a core started with the SAME `--data` dir (pid file lives there).
+  A core started elsewhere keeps running; stop it via its own data dir or process manager.
+
 ## 4. Connect a project
 
 ### Option A — CLI (no OpenCode required)
@@ -58,18 +69,29 @@ selects/generates adapters, syncs data and writes `.dark-factory/` inside the ta
 
 ```
 <project>/.dark-factory/
-  config/project.json            # adapters, permissions, authoritative sources
-  config/capabilities.json       # (core meta copy) verified manifest
-  adapters/*.adapter.ts          # generated project-specific adapters
-  adapters/history/              # previous versions (rollback)
+  config/project.json            # adapters, permissions, authoritative sources (rootName only, no absolute paths)
+  adapters/*.adapter.ts          # ONLY if project-specific adapters were generated
+  adapters/history/              # previous adapter versions (rollback), only when updates happened
   generated/install-manifest.json# every tracked file (for uninstall)
-  generated/opencode-kit-manifest.json
-  diagnostics/                   # probe/drift/sync diagnostics
-  state/                         # adapter cursors
+  generated/opencode-kit-manifest.json  # kit files installed by the plugin path
+  state/                         # adapter cursors, only for adapters that keep cursors
+  diagnostics/                   # created on demand (corrupt-line quarantine etc.)
+<project>/.opencode/agent/factory-*.md      # kit agents (additive, never overwritten)
+<project>/.opencode/skills/factory-*/       # kit skills (additive)
+<project>/.opencode/plugins/dark-factory/   # plugin copy (Option B)
+<project>/.git/info/exclude                 # ".dark-factory/" appended (LOCAL-only, never published, reverted on uninstall)
 ```
 
-Nothing else in the project is modified. Existing `.opencode/agent|skills` files are never
-overwritten.
+Notes:
+- The **Capability Manifest, discovery report, fingerprint and event log live in the CORE
+  data dir** (`<data>/projects/<id>/`), not in the target project. The target keeps only
+  integration configuration and generated adapters.
+- Nothing else in the project is modified. Existing `.opencode/agent|skills` files are never
+  overwritten. No tracked file is edited (including `.gitignore`); the local-only
+  `.git/info/exclude` entry keeps `git status` clean. Teams that commit integration config
+  should add `.dark-factory/` to `.gitignore` themselves if they prefer it published-free.
+- One root = one project: the core dedups registrations by root path, so the plugin and the
+  CLI can never create duplicate projects for the same directory.
 
 ## 6. Verify
 

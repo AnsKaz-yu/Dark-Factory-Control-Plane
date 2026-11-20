@@ -149,9 +149,13 @@ async function main(): Promise<void> {
       const disc = await api(url, "POST", `/api/projects/${id}/discover`) as { manifest: Record<string, unknown>; report: { detectedTools: string[]; evidences: unknown[] } }
       console.log(`Discovered tools: ${disc.report.detectedTools.join(", ") || "(none)"}`)
       printManifestSummary(disc.manifest)
+      // kit parity with the plugin path (additive, tracked, never overwrites)
+      const { installKit } = await import("../../integration/src/install.ts")
+      const kit = installKit(root, join(HERE, "..", "..", "plugin", "kit"))
+      if (kit.installed.length) console.log(`Kit installed: ${kit.installed.length} files (skipped existing: ${kit.skipped.length})`)
       const sync = await api(url, "POST", `/api/projects/${id}/sync`)
       out({ sync })
-      console.log(`\nDashboard: ${url}/  (project ${id})`)
+      console.log(`\nDashboard: ${url}/#/${id}`)
       return
     }
     case "discover": { needProject(); await ensureCore(url, dataDir); const r = await api(url, "POST", `/api/projects/${project}/discover`) as { manifest: Record<string, unknown> }; printManifestSummary(r.manifest); return }

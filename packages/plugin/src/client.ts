@@ -39,9 +39,13 @@ export class CoreClient {
     return r.ok
   }
 
-  async ensureProject(id: string, name: string, root: string): Promise<boolean> {
+  async ensureProject(id: string, name: string, root: string): Promise<string | null> {
     const r = await this.post("/api/projects", { id, name, root })
-    return r.ok || r.status === 409
+    if (r.ok || r.status === 409) {
+      const d = r.data as { project?: { id?: string } }
+      return d.project?.id ?? id
+    }
+    return null
   }
 
   async ingest(projectId: string, events: unknown[]): Promise<{ ok: boolean; accepted?: number; error?: string }> {

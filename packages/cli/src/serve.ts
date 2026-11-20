@@ -31,6 +31,15 @@ server.on("listening", () => {
   console.log(`[dfcp] v${CORE_VERSION} listening on http://${host}:${port} (data: ${dataDir})`)
   console.log(`[dfcp] dashboard: http://${host}:${port}/  ·  api: /api/health`)
 })
-server.on("error", (e) => { console.error(`[dfcp] server error: ${e.message}`); process.exit(1) })
+server.on("error", (e) => {
+  const code = (e as NodeJS.ErrnoException).code
+  if (code === "EADDRINUSE") {
+    console.error(`[dfcp] port ${port} is already in use — another core is probably running.`)
+    console.error(`[dfcp] reuse it (factory status / factory setup talk to http://${host}:${port}), or pass --port <free-port>.`)
+  } else {
+    console.error(`[dfcp] server error: ${e.message}`)
+  }
+  process.exit(1)
+})
 process.on("SIGINT", () => { server.close(); process.exit(0) })
 process.on("SIGTERM", () => { server.close(); process.exit(0) })

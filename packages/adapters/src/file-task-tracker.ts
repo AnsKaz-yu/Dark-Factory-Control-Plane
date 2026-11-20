@@ -96,16 +96,21 @@ export function parseTasks(ctx: AdapterContext, cfg: TrackerConfig): { tasks: Re
     const doc = JSON.parse(text)
     let arr: unknown = cfg.tasksPath ? getPath(doc, cfg.tasksPath) : undefined
     if (arr === undefined && !cfg.tasksPath) {
-      // auto: find first array of objects, or object-of-objects with id-like keys
+      // auto: container keys (tasks/items/...), object-of-objects, or first array of objects
       if (Array.isArray(doc)) arr = doc
-      else if (typeof doc === "object" && doc !== null) {
-        for (const v of Object.values(doc as Record<string, unknown>)) {
-          if (Array.isArray(v) && v.length && typeof v[0] === "object") { arr = v; break }
+      else if (doc && typeof doc === "object") {
+        const obj = doc as Record<string, unknown>
+        for (const k of ["tasks", "items", "backlog", "issues", "entries"]) {
+          const v = obj[k]
+          if (Array.isArray(v)) { arr = v; break }
+          if (v && typeof v === "object") { arr = Object.entries(v as Record<string, unknown>).map(([id, x]) => ({ id, ...(x as object) })); break }
         }
         if (arr === undefined) {
-          const values = Object.values(doc as Record<string, unknown>)
-          if (values.length && values.every(v => typeof v === "object" && v !== null)) {
-            arr = Object.entries(doc as Record<string, unknown>).map(([k, v]) => ({ id: k, ...(v as object) }))
+          const vals = Object.values(obj)
+          if (vals.length >= 2 && vals.every(v => v && typeof v === "object" && !Array.isArray(v))) {
+            arr = Object.entries(obj).map(([id, x]) => ({ id, ...(x as object) }))
+          } else {
+            for (const v of vals) if (Array.isArray(v) && v.length && typeof v[0] === "object" && v[0] !== null) { arr = v; break }
           }
         }
       }
@@ -129,7 +134,7 @@ export const fileTaskTrackerAdapter: Adapter = {
     if (!cfg?.path) return { ok: false, confidence: "inferred", detail: "no path configured", capabilities: { task_management: { status: "not_configured", limitations: ["tracker path not configured"] } } }
     const { tasks, error } = parseTasks(ctx, cfg)
     if (error) return { ok: false, confidence: "inferred", detail: error, capabilities: { task_management: { status: "degraded", limitations: [error] } } }
-    if (!tasks.length) return { ok: true, confidence: "verified", detail: "readable but empty", capabilities: { task_management: { status: "supported", limitations: ["tracker is empty"], completeness: 0 } } }
+    if (!tasks.length) return { ok: true, confidence: "verified", detail: "readable but empty", capabilities: { task_management: { status: "supported", limitations: ["tracker is empty"], completeness: 0, details: { taskCount: 0 } } } }
     const fields = { ...detectFields(tasks.slice(0, 10)), ...cfg.fields }
     if (!fields.id || !fields.title) {
       return { ok: false, confidence: "inferred", detail: "cannot map id/title fields", capabilities: { task_management: { status: "partial", limitations: ["id or title field not detected — configure fields mapping"] } } }

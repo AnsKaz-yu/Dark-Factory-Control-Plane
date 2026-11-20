@@ -109,3 +109,22 @@ Multiple adapters may serve one project (tasks from a custom file, agents from O
 CI from Jenkins, queue from a script's state file, architecture from LikeC4). Declare the
 authoritative source per capability in project config; auxiliary adapters add but never
 overwrite authoritative entities.
+
+## 8. Built-in adapter configuration reference
+
+Keys live in `.dark-factory/config/project.json` → `adapters[].config`. All paths are
+relative to the project root. Credentials are referenced by env var NAME only.
+
+| Adapter | Keys | Defaults / notes |
+|---|---|---|
+| `git` | `taskBranchPattern` | regex mapping branch/commit → task id; default `^(?:feature\|fix\|task)[/-](.+)$` |
+| `file-task-tracker` | `path`, `format` (`json`\|`jsonl`\|`markdown`), `tasksPath` (dot-path), `fields` (`id,title,status,priority,assignee,parent,deps,estimate,progress,component,description` → source key), `statusMap` (source status → normalized), `kindMap`, `defaultKind` | fields auto-detected from first 10 records; statusMap merged over the standard dictionary; unmapped → `unknown` + `unmapped` confidence |
+| `merge-queue-file` | `path`, `itemsPath`, `fields` (`branch,task,agent,state,reason,checks,enqueuedAt`), `stateMap` | field names auto-detected (`branch/ref/branchName`, `state/status/phase`, `task/ticket/taskId`, …) |
+| `likec4` | `modelPath` | candidates: `architecture/dist/model.json`, `dist/model.json`, `model.json`, `architecture/model.json`, `docs/architecture/model.json`; accepts single-project, array, or `{projects:[…]}` exports |
+| `jenkins` | `url`, `jobs[]`, `tokenEnv`, `userEnv` | stages via `/wfapi/describe` when available |
+| `github` | `repo` (`owner/name`), `tokenEnv` (default `GITHUB_TOKEN`), `apiBase` | PRs + Actions runs |
+| `gitlab` | `project` (path or id), `baseUrl`, `tokenEnv` (default `GITLAB_TOKEN`) | pipelines + MRs |
+| `generic-events` | `path`, `format` (`dfcp`\|`raw`) | cursor kept in `.dark-factory/state/` |
+| `opencode` | `registeredAt`, `lastEventAt` (written by plugin/connect) | push source; verified only after plugin connects |
+
+After editing config: `factory discover` (re-probe) then `factory sync`.

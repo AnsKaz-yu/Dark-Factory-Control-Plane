@@ -1,6 +1,7 @@
 // REST API + SSE. Thin handlers over ProjectStore; integration operations are injected
 // (IntegrationHost) so the core stays standalone and testable without the integration layer.
 import type { IncomingMessage, ServerResponse } from "node:http"
+import { resolve } from "node:path"
 import type { EventEnvelope, IngestResult, Task } from "./types.ts"
 import { CORE_VERSION, TASK_STATUSES, PRIORITIES, TASK_KINDS } from "./types.ts"
 import type { ProjectManager, ProjectStore } from "./store.ts"
@@ -86,6 +87,14 @@ route("GET", "/api/projects", ctx => {
 route("POST", "/api/projects", ctx => {
   const { id, name, root } = ctx.body as { id?: string; name?: string; root?: string }
   if (!name || !root) return bad(ctx, "name and root are required")
+  // Root-based dedup: one root = one project, regardless of who registers it
+  // (plugin hash-id vs CLI slug must not create duplicate projects).
+  const want = resolve(root)
+  for (const s of ctx.manager.list()) {
+    if (s.state.project && resolve(s.state.project.root) === want) {
+      return ok(ctx, { project: s.state.project, dedup: true })
+    }
+  }
   const projectId = id ?? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
   if (!/^[a-z0-9][a-z0-9-_]*$/.test(projectId)) return bad(ctx, "id must be lowercase slug")
   const s = ctx.manager.create(projectId, name, root)

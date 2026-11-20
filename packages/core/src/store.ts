@@ -179,6 +179,10 @@ export class ProjectStore {
     const assessed = Object.values(caps.capabilities).filter(c => c.confidence === "verified").length
     checks.push({ name: "capabilities verified", ok: assessed > 0, detail: `${assessed}/${Object.keys(caps.capabilities).length} verified` })
     if (!assessed) recommendations.push("Run factory:discover + factory:sync to verify capabilities.")
+    const am = caps.capabilities.agent_monitoring
+    const amOk = am.confidence === "verified" && (am.status === "supported" || am.status === "partial")
+    checks.push({ name: "agent monitoring verified", ok: amOk, detail: `status=${am.status}, confidence=${am.confidence}` })
+    if (!amOk) recommendations.push("agent_monitoring is not probe-verified: connect the DFCP OpenCode plugin (or a harness agent source), then factory:sync.")
     const integ = this.getIntegration()
     for (const [id, s] of Object.entries(integ.sync)) {
       const ok = s.state === "ok"
