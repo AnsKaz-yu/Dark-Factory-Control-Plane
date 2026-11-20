@@ -142,3 +142,26 @@ Capabilities matrix (status/source/limitations) · Drift log · Reconciliation r
 
 `stale`/`degraded` keep the section visible but badge it and freeze trust (show last good data
 with timestamp, never as current fact).
+
+## 6. Localization (EN / RU)
+
+- Settings → Language selector (English / Русский); preference stored per browser
+  (`localStorage`), overridable per link via `?lang=en|ru` (shareable localized links).
+- All UI labels, navigation, table headers, banners, empty/unavailable states, status chips
+  and chart legends are translated; domain identifiers (task IDs, adapter ids, canonical
+  status keys) keep their canonical form, with translated display labels.
+- Core-generated alert/note strings are translated client-side for known patterns only;
+  unknown strings pass through unchanged (never fabricated).
+
+## 7. Planning & activity visuals
+
+- **Critical Path → Gantt**: forward-pass schedule of open tasks (release-scoped via selector),
+  working-hours/day axis with calendar day gridlines, critical-path bars highlighted,
+  estimated (placeholder) durations dashed, release-target line and projected-finish line;
+  late finish raises an explicit alert. Missing estimates ⇒ structural path + placeholder
+  durations, clearly labeled as estimates (never presented as facts).
+- **Repository activity**: commits/day bars + events/day line over the last 14 days
+  (Overview panel and Metrics section), computed server-side from the git adapter and the
+  event log; honest notes when commit history is capped or absent.
+- **Capture mode** (`?capture=1`): quiescent page (no SSE) for deterministic documentation
+  screenshots.

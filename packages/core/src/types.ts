@@ -330,6 +330,32 @@ export interface CriticalPathResult {
   edges: { from: string; to: string }[]
   notes: string[]
   cycles: string[][]
+  schedule?: GanttBar[]
+  horizonHours?: number
+  workingHoursPerDay?: number
+  projectedFinishAt?: ISO
+  releaseTargetAt?: ISO
+  lateByHours?: number
+}
+
+export interface GanttBar {
+  taskId: string
+  title: string
+  status: string
+  startH: number
+  endH: number
+  onPath: boolean
+  estimated: boolean
+}
+
+export interface RepoActivityDay { date: string; commits: number; events: number }
+
+export interface RepoActivity {
+  nature: DataNature
+  days: RepoActivityDay[]
+  totalCommits: number
+  totalEvents: number
+  notes: string[]
 }
 
 // ---------- metrics ----------

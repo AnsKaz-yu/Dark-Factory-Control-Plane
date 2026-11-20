@@ -57,6 +57,20 @@ node packages/core/src/main.ts --port 8095 --data .dfcp-data
 
 Индекс документации: [`docs/README.md`](docs/README.md).
 
+## Скриншоты
+
+Capability-driven обзор с активностью репозитория (коммиты и события по дням):
+
+![Обзор](docs/demo/ru/overview.png)
+
+Критический путь с диаграммой Ганта до целевой даты релиза (опоздание честно помечается):
+
+![Гант критического пути](docs/demo/ru/critical-path-gantt.png)
+
+Настройки — выбор языка интерфейса (English / Русский):
+
+![Настройки языка](docs/demo/ru/settings-language.png)
+
 ## Лицензия
 
 MIT — см. [LICENSE](LICENSE).

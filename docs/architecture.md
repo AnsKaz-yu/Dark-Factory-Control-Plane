@@ -115,6 +115,15 @@ Single typed source: `packages/core/src/types.ts`. Entities (per project):
 to every externally-sourced record. Normalization rule: *normalize what is common, preserve
 what is project-specific* — `status` + `sourceStatus` + `mapping` always travel together.
 
+**Planning & activity analytics (server-side):** `criticalPath()` additionally returns a
+forward-pass Gantt `schedule[]` (start/end working hours per open task, critical-path flag,
+estimated-duration flag), `horizonHours`, `projectedFinishAt`, and — when a release scope with
+`targetDate` is given — `releaseTargetAt` + `lateByHours`. Placeholder durations (mean of known
+estimates) are used only when estimates are missing and are explicitly flagged.
+`repoActivity()` buckets git commits and ingested events per day (14-day window) for the
+repository-activity chart; both are exposed via `GET /api/projects/:id/critical-path`,
+`/git` and `/metrics`.
+
 ## 5. Event contracts
 
 Envelope (all events):

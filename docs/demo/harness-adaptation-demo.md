@@ -117,6 +117,29 @@ re-verifies. Covered by `tests/e2e/product.test.ts` over HTTP.
 
 ---
 
+## Addendum — localization, Gantt to release, repository activity
+
+Captured from the same live instance (headless capture mode, `?capture=1&lang=…`).
+
+**English UI** — overview with repository activity, critical-path Gantt scoped to release
+`v0.3` (target 11-21, projected finish 11-24 → explicit late alert), Settings language selector:
+
+![EN overview](en/overview.png)
+![EN Gantt](en/critical-path-gantt.png)
+![EN settings](en/settings-language.png)
+
+**Russian UI** — the same screens fully localized (labels, statuses, alerts, notes, legends):
+
+![RU overview](ru/overview.png)
+![RU Gantt](ru/critical-path-gantt.png)
+![RU settings](ru/settings-language.png)
+
+The Gantt shows the dependency-respecting forward pass (T-20 → T-21 → T-22), the release
+target line, the projected finish line, and honest estimation flags; the repository activity
+chart shows commits/day and events/day from the git adapter and the event log.
+
+---
+
 ## What this demonstrates (Definition of Done anchors)
 
 - Automatic discovery of two different harnesses; no project was reshaped to fit DFCP.

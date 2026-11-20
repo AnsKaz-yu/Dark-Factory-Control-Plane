@@ -57,6 +57,20 @@ node packages/core/src/main.ts --port 8095 --data .dfcp-data
 
 Documentation index: [`docs/README.md`](docs/README.md).
 
+## Screenshots
+
+Capability-driven overview with repository activity (commits & events per day):
+
+![Overview](docs/demo/en/overview.png)
+
+Critical path with a Gantt schedule to the release target (late finish flagged honestly):
+
+![Critical path Gantt](docs/demo/en/critical-path-gantt.png)
+
+Settings — UI language selector (English / Русский):
+
+![Settings language](docs/demo/en/settings-language.png)
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

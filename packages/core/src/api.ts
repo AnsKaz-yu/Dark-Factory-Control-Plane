@@ -6,7 +6,7 @@ import { CORE_VERSION, TASK_STATUSES, PRIORITIES, TASK_KINDS } from "./types.ts"
 import type { ProjectManager, ProjectStore } from "./store.ts"
 import {
   buildTaskTree, componentReadiness, computeMetrics, criticalPath, dashboardConfig,
-  effectiveAgentStatus, projectOverview, releaseReadiness, workflowView,
+  effectiveAgentStatus, projectOverview, releaseReadiness, repoActivity, workflowView,
 } from "./derive.ts"
 import { nowISO } from "./ids.ts"
 
@@ -241,7 +241,7 @@ route("GET", "/api/projects/:id/workflow", ctx => {
 
 route("GET", "/api/projects/:id/git", ctx => {
   const s = store(ctx); if (!s) return
-  ok(ctx, { branches: Object.values(s.state.branches), commits: s.state.commits.slice(0, 200), pullRequests: Object.values(s.state.pullRequests) })
+  ok(ctx, { branches: Object.values(s.state.branches), commits: s.state.commits.slice(0, 200), pullRequests: Object.values(s.state.pullRequests), activity: repoActivity(s.state, s.events.all()) })
 })
 
 route("GET", "/api/projects/:id/pipelines", ctx => {
@@ -269,8 +269,9 @@ route("GET", "/api/projects/:id/merge-queue", ctx => {
 route("GET", "/api/projects/:id/critical-path", ctx => {
   const s = store(ctx); if (!s) return
   const releaseId = ctx.query.get("releaseId")
-  const scope = releaseId ? s.state.releases[releaseId]?.scopeTaskIds : undefined
-  ok(ctx, criticalPath(s.state, scope))
+  const release = releaseId ? s.state.releases[releaseId] : undefined
+  const scope = release?.scopeTaskIds
+  ok(ctx, criticalPath(s.state, scope, { targetDate: release?.targetDate }))
 })
 
 route("GET", "/api/projects/:id/releases", ctx => {
@@ -294,7 +295,7 @@ route("GET", "/api/projects/:id/releases/:rid", ctx => {
   const s = store(ctx); if (!s) return
   const r = s.state.releases[ctx.params.rid]
   if (!r) return bad(ctx, "release not found", 404)
-  ok(ctx, { release: r, readiness: releaseReadiness(s.state, r, s.getCapabilities()), criticalPath: criticalPath(s.state, r.scopeTaskIds) })
+  ok(ctx, { release: r, readiness: releaseReadiness(s.state, r, s.getCapabilities()), criticalPath: criticalPath(s.state, r.scopeTaskIds, { targetDate: r.targetDate }) })
 })
 
 route("PATCH", "/api/projects/:id/releases/:rid", ctx => {
@@ -323,7 +324,7 @@ route("GET", "/api/projects/:id/architecture", ctx => {
 
 route("GET", "/api/projects/:id/metrics", ctx => {
   const s = store(ctx); if (!s) return
-  ok(ctx, { current: computeMetrics(s.state, s.getCapabilities()), history: s.state.metricSnapshots })
+  ok(ctx, { current: computeMetrics(s.state, s.getCapabilities()), history: s.state.metricSnapshots, repoActivity: repoActivity(s.state, s.events.all()) })
 })
 
 route("GET", "/api/projects/:id/activity", ctx => {

@@ -2,8 +2,8 @@
 // Every result carries its data nature: real / computed / estimated / missing.
 import type {
   Agent, AgentStatus, Capability, CapabilityId, CapabilityManifest, CriticalPathResult,
-  DashboardConfig, DashboardSection, Freshness, MetricSnapshot, ProjectOverview,
-  Release, ReleaseReadiness, Task, TaskTreeNode, WorkflowView,
+  DashboardConfig, DashboardSection, Freshness, GanttBar, MetricSnapshot, ProjectOverview,
+  Release, ReleaseReadiness, RepoActivity, RepoActivityDay, Task, TaskTreeNode, WorkflowView,
 } from "./types.ts"
 import { CAPABILITY_IDS, CORE_VERSION } from "./types.ts"
 import type { ProjectState } from "./projections.ts"
@@ -88,7 +88,9 @@ export function componentReadiness(state: ProjectState, componentId: string): { 
 
 // ---------- critical path ----------
 
-export function criticalPath(state: ProjectState, scopeTaskIds?: string[]): CriticalPathResult {
+export const WORKING_HOURS_PER_DAY = 8
+
+export function criticalPath(state: ProjectState, scopeTaskIds?: string[], opts?: { targetDate?: string; now?: number }): CriticalPathResult {
   const tasks = Object.values(state.tasks).filter(t => t.status !== "cancelled" && t.status !== "done" && t.status !== "merged")
   const scoped = scopeTaskIds ? tasks.filter(t => scopeTaskIds.includes(t.id)) : tasks
   const ids = new Set(scoped.map(t => t.id))
@@ -164,10 +166,86 @@ export function criticalPath(state: ProjectState, scopeTaskIds?: string[]): Crit
   if (cycles.length) { nature = "estimated"; notes.push(`Dependency cycles detected (${cycles.length}): path is approximate.`) }
   if (scoped.some(t => t.status === "blocked")) notes.push("Blocked tasks included; their wait time is not estimated.")
 
+  // ---- Gantt schedule (forward pass over open tasks) ----
+  const now = opts?.now ?? Date.now()
+  const known = scoped.map(t => t.estimateHours).filter((x): x is number => x !== undefined && x > 0)
+  const placeholder = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : WORKING_HOURS_PER_DAY
+  const durOf = (t: Task): { h: number; estimated: boolean } =>
+    t.estimateHours !== undefined && t.estimateHours > 0 ? { h: t.estimateHours, estimated: false } : { h: placeholder, estimated: true }
+  const es = new Map<string, number>()
+  const ef = new Map<string, number>()
+  const visiting3 = new Set<string>()
+  function forward(id: string): number {
+    if (ef.has(id)) return ef.get(id)!
+    if (visiting3.has(id)) return 0
+    visiting3.add(id)
+    const t = byId.get(id)!
+    const deps = t.dependencies.filter(d => ids.has(d))
+    const start = deps.length ? Math.max(...deps.map(forward)) : 0
+    const end = start + durOf(t).h
+    es.set(id, start); ef.set(id, end)
+    visiting3.delete(id)
+    return end
+  }
+  for (const id of ids) forward(id)
+  const schedule: GanttBar[] = [...ids].map(id => {
+    const t = byId.get(id)!
+    return { taskId: id, title: t.title, status: t.status, startH: es.get(id) ?? 0, endH: ef.get(id) ?? 0, onPath: path.includes(id), estimated: durOf(t).estimated }
+  }).sort((a, b) => a.startH - b.startH || a.taskId.localeCompare(b.taskId))
+  const horizonHours = schedule.length ? Math.max(...schedule.map(b => b.endH)) : 0
+  if (schedule.some(b => b.estimated)) notes.push(`Gantt uses placeholder durations (${placeholder}h = mean of known estimates) for tasks without estimates — marked as estimated.`)
+  const projectedFinishAt = scoped.length ? new Date(now + horizonHours / WORKING_HOURS_PER_DAY * 86400000).toISOString() : undefined
+  let lateByHours: number | undefined
+  if (opts?.targetDate && projectedFinishAt) {
+    const target = Date.parse(opts.targetDate)
+    if (!isNaN(target)) {
+      lateByHours = Math.round((Date.parse(projectedFinishAt) - target) / 86400000 * WORKING_HOURS_PER_DAY * 10) / 10
+      if (lateByHours > 0) notes.push(`Projected finish is ${lateByHours} working hours AFTER the release target date.`)
+    }
+  }
+
   return {
     nature, path, lengthHours: allEstimated && scoped.length ? endVal : undefined,
     layers: [...ids].map(id => ({ taskId: id, layer: layer.get(id) ?? 0 })),
     edges, notes, cycles,
+    schedule, horizonHours, workingHoursPerDay: WORKING_HOURS_PER_DAY,
+    projectedFinishAt, releaseTargetAt: opts?.targetDate, lateByHours,
+  }
+}
+
+// ---------- repository activity ----------
+
+export function repoActivity(state: ProjectState, events: readonly { occurredAt: string }[] = [], days = 14, now = Date.now()): RepoActivity {
+  const dayMs = 86400000
+  const start = new Date(now)
+  start.setUTCHours(0, 0, 0, 0)
+  const buckets: RepoActivityDay[] = []
+  const index = new Map<string, RepoActivityDay>()
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(start.getTime() - i * dayMs)
+    const key = d.toISOString().slice(0, 10)
+    const b = { date: key, commits: 0, events: 0 }
+    buckets.push(b); index.set(key, b)
+  }
+  for (const c of state.commits) {
+    const key = (c.at ?? "").slice(0, 10)
+    const b = index.get(key)
+    if (b) b.commits++
+  }
+  for (const e of events) {
+    const key = (e.occurredAt ?? "").slice(0, 10)
+    const b = index.get(key)
+    if (b) b.events++
+  }
+  const notes: string[] = []
+  if (state.commits.length >= 1000) notes.push("commit history capped at 1000 records")
+  if (!state.commits.length) notes.push("no commits observed — connect the git adapter")
+  return {
+    nature: state.commits.length ? "computed" : "missing",
+    days: buckets,
+    totalCommits: buckets.reduce((a, b) => a + b.commits, 0),
+    totalEvents: buckets.reduce((a, b) => a + b.events, 0),
+    notes,
   }
 }
 
