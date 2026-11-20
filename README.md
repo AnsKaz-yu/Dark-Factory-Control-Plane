@@ -2,7 +2,7 @@
 
 **DFCP. An adaptive control plane for autonomous software development — for people, engineering harnesses and AI agents.**
 
-[![CI](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-46%20passing-brightgreen)](#testing)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.18-339933)](#quick-start)
 [![Runtime deps](https://img.shields.io/badge/runtime%20deps-0-blue)](#vision)

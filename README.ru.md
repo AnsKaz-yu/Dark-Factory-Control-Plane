@@ -2,7 +2,7 @@
 
 **DFCP. Адаптивная панель управления автономной разработкой — для людей, инженерных harness и AI-агентов.**
 
-[![CI](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/AnsKaz-yu/Dark-Factory-Control-Plane/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-46%20passing-brightgreen)](#тестирование)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.18-339933)](#быстрый-старт)
 [![Runtime deps](https://img.shields.io/badge/runtime%20deps-0-blue)](#видение)
