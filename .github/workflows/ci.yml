@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build dashboard (zero-dependency type stripper)
+        run: node packages/dashboard/build.mjs
+      - name: Check dashboard bundle syntax
+        run: node --check packages/dashboard/dist/app.js
+      - name: Unit tests
+        run: node --test tests/unit/core.test.ts tests/unit/schedule.test.ts tests/unit/deploy-fixes.test.ts
+      - name: Integration tests (synthetic harnesses)
+        run: node --test tests/integration/adaptive.test.ts
+      - name: End-to-end tests (product over HTTP)
+        run: node --test tests/e2e/product.test.ts
+      - name: Regenerate event contract spec (must be committed up to date)
+        run: |
+          node scripts/gen-event-spec.mjs
+          git diff --exit-code docs/specs/event-contracts.md
