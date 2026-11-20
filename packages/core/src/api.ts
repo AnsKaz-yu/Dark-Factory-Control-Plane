@@ -50,7 +50,8 @@ const ok = (ctx: Ctx, data: unknown) => json(ctx.res, 200, data)
 const bad = (ctx: Ctx, msg: string, status = 400) => json(ctx.res, status, { error: msg })
 
 function store(ctx: Ctx): ProjectStore | null {
-  const id = ctx.params.id
+  const id = ctx.manager.resolve(ctx.params.id)
+  ctx.params.id = id
   if (!ctx.manager.has(id)) { bad(ctx, `project not found: ${id}`, 404); return null }
   return ctx.manager.get(id)
 }
@@ -99,6 +100,14 @@ route("POST", "/api/projects", ctx => {
   if (!/^[a-z0-9][a-z0-9-_]*$/.test(projectId)) return bad(ctx, "id must be lowercase slug")
   const s = ctx.manager.create(projectId, name, root)
   ok(ctx, { project: s.state.project })
+})
+
+route("POST", "/api/projects/:id/aliases", ctx => {
+  const s = store(ctx); if (!s) return
+  const alias = ctx.body.alias as string
+  if (!alias || alias === s.id) return bad(ctx, "alias required and must differ from target id")
+  ctx.manager.addAlias(alias, s.id)
+  ok(ctx, { alias, target: s.id })
 })
 
 route("GET", "/api/projects/:id", ctx => {

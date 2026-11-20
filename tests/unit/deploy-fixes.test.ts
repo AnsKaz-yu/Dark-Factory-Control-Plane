@@ -40,6 +40,24 @@ test("F1: root-based dedup — plugin hash-id and CLI slug resolve to one projec
   } finally { server.close(); rmSync(dir, { recursive: true, force: true }) }
 })
 
+test("F1b: merged-duplicate alias keeps older clients working", async () => {
+  const dir = tmp()
+  const root = join(dir, "proj"); mkdirSync(root, { recursive: true })
+  const { server } = startServer({ dataDir: join(dir, "data"), port: 0, host_integration: new DfcpIntegrationHost() })
+  await new Promise(r => server.on("listening", r))
+  const port = (server.address() as { port: number }).port
+  const api = async (m: string, p: string, b?: unknown) => (await fetch(`http://127.0.0.1:${port}${p}`, { method: m, headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined })).json()
+  try {
+    await api("POST", "/api/projects", { id: "canon", name: "Canon", root })
+    const al = await api("POST", "/api/projects/canon/aliases", { alias: "oldhashid" })
+    assert.equal(al.target, "canon")
+    const ov = await api("GET", "/api/projects/oldhashid")
+    assert.equal(ov.project.id, "canon")
+    const ing = await api("POST", "/api/projects/oldhashid/events", { events: [{ type: "activity.note", schemaVersion: 1, payload: { text: "via alias" }, source: { adapterId: "t", sourceId: "t", entityKind: "activity", authoritative: true, fetchedAt: new Date().toISOString() } }] })
+    assert.equal(ing.accepted, 1)
+  } finally { server.close(); rmSync(dir, { recursive: true, force: true }) }
+})
+
 test("F7: heartbeat and session.started auto-register agents unknown to the registry", () => {
   let s = initialState()
   s = apply(s, makeEnvelope({ projectId: "p", type: "agent.heartbeat", schemaVersion: 1, payload: { id: "oc:late", taskId: "T1" }, source: SRC, seq: 1 }))

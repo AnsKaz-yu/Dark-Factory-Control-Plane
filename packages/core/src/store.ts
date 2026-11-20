@@ -200,11 +200,23 @@ export class ProjectStore {
 export class ProjectManager {
   readonly dataDir: string
   private stores = new Map<string, ProjectStore>()
+  private aliases: Record<string, string> = {}
 
   constructor(dataDir: string) {
     this.dataDir = dataDir
     mkdirSync(join(dataDir, "projects"), { recursive: true })
+    try { this.aliases = JSON.parse(readFileSync(join(dataDir, "aliases.json"), "utf8")) } catch { /* none */ }
     for (const id of this.listIds()) this.get(id) // warm start
+  }
+
+  /** Resolve merged-duplicate aliases so older clients keep working after a merge. */
+  resolve(id: string): string { return this.has(id) ? id : (this.aliases[id] ?? id) }
+
+  addAlias(alias: string, target: string): void {
+    this.aliases[alias] = target
+    const tmp = join(this.dataDir, "aliases.json.tmp-" + process.pid)
+    writeFileSync(tmp, JSON.stringify(this.aliases, null, 2))
+    renameSync(tmp, join(this.dataDir, "aliases.json"))
   }
 
   listIds(): string[] {

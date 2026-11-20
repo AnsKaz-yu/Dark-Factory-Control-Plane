@@ -6,7 +6,7 @@ the product (code + docs) and covered by regression tests where applicable
 
 | # | Friction | Fix | Verification |
 |---|---|---|---|
-| F1 | Plugin hash-id vs CLI slug → duplicate projects | Plugin id = slug of directory name (same as CLI); core `POST /api/projects` dedups by resolved root path and returns the existing project | unit test "F1"; live: orphan merged (332 events preserved) and removed; one `reservoiros` project |
+| F1 | Plugin hash-id vs CLI slug → duplicate projects | Plugin id = slug of directory name (same as CLI); core `POST /api/projects` dedups by resolved root path and returns the existing project; **project id aliases** (`POST /api/projects/:id/aliases`) keep older plugin instances working after a duplicate merge | unit tests "F1", "F1b"; live: orphan merged (332 events preserved) and removed; alias registered; live `factory_status`/`factory_doctor` in the deploying session resolve to `reservoiros` |
 | F2 | autoSetup appeared inert | Consequence of F1 (plugin assessed the hash-id project while CLI created the slug one). autoSetup now also treats all-`unknown` manifests as unassessed | live: agent_monitoring supported via plugin push |
 | F3 | CLI setup didn't install the kit | `factory setup` now installs the kit via shared `installKit()` (additive, tracked, never overwrites) — parity with plugin path | code + kit manifest tracking |
 | F4 | installation.md §5 overpromised target layout | §5 rewritten: manifest/discovery/fingerprint/log live in core data dir; target keeps config + generated adapters + cursors only | docs |
@@ -43,4 +43,13 @@ the product (code + docs) and covered by regression tests where applicable
 
 Updating an already-loaded plugin copy requires an OpenCode service restart
 (`opencode service restart`) — hot-reload of `.opencode/plugins` content is not guaranteed
-by the host. Documented in plugin INSTALL.md.
+by the host. Documented in plugin INSTALL.md. Until restart, older plugin instances keep
+working through project id aliases (see F1), so observation is never interrupted.
+
+## Live plugin verification (deploying session)
+
+After the fixes, the OpenCode session that performed the deployment exposes working
+`factory_*` tools backed by the live plugin: `factory_status` reports 206 tasks
+(109 done / 3 in progress / 11 blocked) and 2/7 agents working; `factory_doctor` reports
+healthy with 646 events and 0 corrupt lines. Dashboard: `http://127.0.0.1:8095/#/reservoiros/overview`
+(screenshot: `reservoiros-overview.png`).
